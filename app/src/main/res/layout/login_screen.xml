@@ -15,15 +15,14 @@
         android:layout_gravity="center_horizontal"
         android:layout_marginTop="60dp"
         android:layout_marginBottom="32dp"
-        android:contentDescription="@string/todo"
-        android:src="@drawable/logo"
+        android:src="@drawable/map"
         />
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="center_horizontal"
-        android:text="@string/welcome"
+        android:text="Welcome Back"
         android:textSize="24sp"
         android:textColor="@color/black"
         android:textStyle="bold"
@@ -44,7 +43,7 @@
             android:id="@+id/login_email_input"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="@string/email"
+            android:hint="Email"
             android:textSize="18sp"
             android:textStyle="bold"
             android:inputType="textEmailAddress"
@@ -66,22 +65,31 @@
             android:id="@+id/login_password_input"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="@string/password"
+            android:hint="Password"
             android:textSize="18sp"
             android:textStyle="bold"
-            android:inputType="textPassword"
-            android:maxLines="1"/>
+            android:inputType="textPassword"/>
     </com.google.android.material.textfield.TextInputLayout>
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Forgot Password?"
+        android:textColor="@color/blue"
+        android:layout_marginEnd="30dp"
+        android:layout_marginBottom="16dp"
+        android:gravity="end"
+        android:textSize="16sp"
+       />
 
     <Button
         android:id="@+id/login_button"
         android:layout_width="200dp"
         android:layout_height="65dp"
         android:layout_gravity="center"
-        android:text="@string/log_in"
+        android:text="Login"
         android:textAllCaps="false"
         android:textColor="@color/white"
-        android:backgroundTint="@color/Blue"
+        android:backgroundTint="@color/blue"
         android:layout_marginTop="20dp"
         android:layout_marginBottom="16dp"
         android:textStyle="bold"
@@ -96,9 +104,9 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="center_horizontal"
-        android:text="@string/don_t_have_an_account_sign_up"
+        android:text="Don't have an account? Sign Up"
         android:layout_marginTop="30dp"
-        android:textColor="@color/black"
+        android:textColor="@color/blue"
         android:textSize="18sp"
         />
 </LinearLayout>
