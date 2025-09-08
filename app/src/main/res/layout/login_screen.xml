@@ -130,6 +130,9 @@
                     android:textColor="#666666"
                     android:textSize="14sp" />
 
+
+
+
                 <TextView
                     android:id="@+id/tvSignUp"
                     android:layout_width="wrap_content"
