@@ -3,4 +3,22 @@
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
     <color name="blue">#2E02EF</color>
+    <!-- Primary Blue Colors -->
+    <color name="blue_light">#4FC3F7</color>
+    <color name="blue_medium">#29B6F6</color>
+    <color name="blue_primary">#2196F3</color>
+    <color name="blue_dark">#1976D2</color>
+
+    <!-- Additional Colors -->
+    <color name="gray_text">#666666</color>
+    <color name="gray_light">#E0E0E0</color>
+
+    <!-- Button Colors -->
+    <color name="button_primary">#2196F3</color>
+    <color name="button_pressed">#1976D2</color>
+
+    <!-- Text Colors -->
+    <color name="text_primary">#212121</color>
+    <color name="text_secondary">#757575</color>
+    <color name="text_link">#2196F3</color>
 </resources>
