@@ -73,19 +73,25 @@ class AuthRepository(
             Result.failure(e)
         }
     }
+    suspend fun signUpWithEmail(email: String, password: String): Result<Unit> {
+        return try {
+            if (email.isBlank() || password.isBlank()) {
+                return Result.failure(IllegalArgumentException("Email and password cannot be empty"))
+            }
+
+            val result = firebaseAuth.createUserWithEmailAndPassword(email, password).await()
+            val user = result.user
+
+            user?.sendEmailVerification()?.await()
+
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 
     fun signOut() {
         firebaseAuth.signOut()
     }
 
-    // ✅ Companion object for static-like utilities
-    companion object {
-        // For quick creation of repository
-        fun create(): AuthRepository {
-            return AuthRepository(FirebaseAuth.getInstance())
-        }
-
-        // Example of a shared constant
-        const val TAG = "AuthRepository"
-    }
 }

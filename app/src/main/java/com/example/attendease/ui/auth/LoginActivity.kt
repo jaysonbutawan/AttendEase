@@ -53,6 +53,30 @@ class LoginActivity : AppCompatActivity() {
                 }
             }
         }
+        binding.loginButton.setOnClickListener {
+            val email = binding.emailEditText.text.toString().trim()
+            val password = binding.passwordEditText.text.toString().trim()
+
+            if (email.isEmpty() || password.isEmpty()) {
+                Toast.makeText(this, "Please enter email and password", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+
+            lifecycleScope.launch {
+                val result = repository.signInWithEmail(email, password)
+                result.onSuccess {
+                    Toast.makeText(this@LoginActivity, "Login Successful", Toast.LENGTH_SHORT).show()
+                    startActivity(Intent(this@LoginActivity, DashboardActivity::class.java))
+                    finish()
+                }.onFailure { e ->
+                    Toast.makeText(
+                        this@LoginActivity,
+                        "Email login failed: ${e.message}",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+            }
+        }
 
         // Go to signup
         binding.signUpText.setOnClickListener {
