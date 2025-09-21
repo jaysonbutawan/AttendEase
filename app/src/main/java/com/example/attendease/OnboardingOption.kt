@@ -1,32 +1,33 @@
 package com.example.attendease
 
-import android.annotation.SuppressLint
 import android.content.Intent
 import android.os.Bundle
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
-import com.example.attendease.databinding.LoginScreenBinding
-import com.example.attendease.databinding.SignupScreenBinding
+import com.example.attendease.databinding.OnboardingOptionScreenBinding
 import com.example.attendease.ui.auth.LoginActivity
 
-class SignupActivity : AppCompatActivity() {
-    private lateinit var binding: SignupScreenBinding
-    @SuppressLint("MissingInflatedId")
+class OnboardingOption : AppCompatActivity() {
+    private lateinit var binding: OnboardingOptionScreenBinding
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        binding = SignupScreenBinding.inflate(layoutInflater)
+        binding = OnboardingOptionScreenBinding.inflate(layoutInflater)
         setContentView(binding.root)
-
         enableEdgeToEdge()
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.signup_main)) { v, insets ->
+        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.onboardingOptionLayout)) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
             insets
         }
-        binding.LoginText.setOnClickListener {
+
+        binding.loginButton.setOnClickListener {
             startActivity(Intent(this, LoginActivity::class.java))
+        }
+        binding.createAccountButton.setOnClickListener {
+            startActivity(Intent(this, SignupActivity::class.java))
         }
     }
 }

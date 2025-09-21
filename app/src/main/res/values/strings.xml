@@ -1,3 +1,17 @@
 <resources>
     <string name="app_name">AttendEase</string>
+    <string name="attendease">AttendEase</string>
+    <string name="get_started_by_logging_in_to_your_account_or_creating_a_new_one">Get started by logging in to your account or creating a new one.</string>
+    <string name="create_account">Create Account</string>
+    <string name="log_in">Log in</string>
+    <string name="forgot_password">Forgot Password?</string>
+    <string name="password">Password</string>
+    <string name="email_address">Email Address</string>
+    <string name="sign_in_with_google">Sign in with Google</string>
+    <string name="or_login_with">Or login with</string>
+    <string name="don_t_have_an_account_sign_up">Don\'t have an account? Sign up</string>
+    <string name="let_s_sign_in">Let\'s Sign In</string>
+    <string name="todo">TODO</string>
+    <string name="already_have_an_account_sign_up">Already have an account? Sign up</string>
+    <string name="default_web_client_id"> 246473705713-pm3mk17lashir3tk1d0flr9ggu5oev2m.apps.googleusercontent.com</string >
 </resources>

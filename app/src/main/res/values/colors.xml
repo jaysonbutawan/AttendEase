@@ -1,24 +1,32 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="black">#FF000000</color>
-    <color name="white">#FFFFFFFF</color>
-    <color name="blue">#2E02EF</color>
-    <!-- Primary Blue Colors -->
-    <color name="blue_light">#4FC3F7</color>
-    <color name="blue_medium">#29B6F6</color>
-    <color name="blue_primary">#2196F3</color>
-    <color name="blue_dark">#1976D2</color>
+    <color name="primary_green">#4CAF50</color>
+    <color name="primary_green_dark">#388E3C</color>
+    <color name="primary_green_light">#81C784</color>
 
-    <!-- Additional Colors -->
-    <color name="gray_text">#666666</color>
-    <color name="gray_light">#E0E0E0</color>
+    <!-- Secondary Colors -->
+    <color name="accent_teal">#26A69A</color>
+    <color name="blue">#1832BF</color>
 
-    <!-- Button Colors -->
-    <color name="button_primary">#2196F3</color>
-    <color name="button_pressed">#1976D2</color>
+    <!-- Background Colors -->
+    <color name="background_color">#F8F9FA</color>
+    <color name="card_background">#FFFFFF</color>
+    <color name="input_background">#F5F5F5</color>
 
     <!-- Text Colors -->
-    <color name="text_primary">#212121</color>
-    <color name="text_secondary">#757575</color>
-    <color name="text_link">#2196F3</color>
+    <color name="primary_text">#212121</color>
+    <color name="secondary_text">#757575</color>
+    <color name="text_on_primary">#FFFFFF</color>
+
+    <!-- Utility Colors -->
+    <color name="divider_color">#E0E0E0</color>
+    <color name="error_color">#F44336</color>
+    <color name="success_color">#4CAF50</color>
+    <color name="warning_color">#FF9800</color>
+
+    <!-- Dark Theme Colors (Optional) -->
+    <color name="dark_background">#121212</color>
+    <color name="dark_surface">#1E1E1E</color>
+    <color name="dark_primary_text">#FFFFFF</color>
+    <color name="dark_secondary_text">#B3B3B3</color>
 </resources>

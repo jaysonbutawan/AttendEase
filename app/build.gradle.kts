@@ -1,11 +1,17 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.google.gms.google.services)
+
 }
 
 android {
     namespace = "com.example.attendease"
     compileSdk = 36
+
+    buildFeatures {
+        viewBinding = true
+    }
 
     defaultConfig {
         applicationId = "com.example.attendease"
@@ -36,22 +42,31 @@ android {
 }
 
 dependencies {
-
+    // Core
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
+    implementation("androidx.cardview:cardview:1.0.0")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.9.4")
+
+    // UI
     implementation(libs.material)
     implementation(libs.androidx.activity)
     implementation(libs.androidx.constraintlayout)
+    implementation("com.google.android.material:material:1.13.0")
+    implementation("androidx.credentials:credentials:1.5.0") // Credential Manager
+    implementation("androidx.credentials:credentials-play-services-auth:1.5.0")
+
+    // Firebase
+    implementation(libs.firebase.auth.ktx)
+    implementation(libs.firebase.database)
+
+    // Google Sign-In
+    implementation("com.google.android.gms:play-services-auth:21.4.0")
+    implementation(libs.androidx.activity.compose)
+    implementation(libs.googleid)
+
+    // Testing
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
-    // Material Design Components
-    implementation("com.google.android.material:material:1.13.0")
-// ConstraintLayout
-    implementation("androidx.constraintlayout:constraintlayout:2.2.1")
-// CardView
-    implementation("androidx.cardview:cardview:1.0.0")
-// Core Android dependencies
-    implementation("androidx.core:core-ktx:1.17.0")
-    implementation("androidx.appcompat:appcompat:1.7.1")
 }
