@@ -13,5 +13,10 @@
     <string name="let_s_sign_in">Let\'s Sign In</string>
     <string name="todo">TODO</string>
     <string name="already_have_an_account_sign_up">Already have an account? Sign up</string>
-    <string name="default_web_client_id"> 246473705713-pm3mk17lashir3tk1d0flr9ggu5oev2m.apps.googleusercontent.com</string >
+    <string name="default_web_client_id"> 246473705713-pm3mk17lashir3tk1d0flr9ggu5oev2m.apps.googleusercontent.com</string>
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="manage_classes">Manage Classes</string>
+    <string name="_reports">Attendance Reports</string>
+    <string name="teacher">Teacher</string>
+    <string name="attend_ease">Attend Ease</string>
 </resources>

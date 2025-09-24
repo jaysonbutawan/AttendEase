@@ -9,10 +9,10 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
 import com.example.attendease.R
-import com.example.attendease.SignupActivity
+import com.example.attendease.ui.auth.SignupActivity
 import com.example.attendease.data.repositories.AuthRepository
 import com.example.attendease.databinding.LoginScreenBinding
-import com.example.attendease.ui.dashboard.DashboardActivity
+import com.example.attendease.ui.dashboard.MainNavigationActivity
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
 
@@ -42,7 +42,7 @@ class LoginActivity : AppCompatActivity() {
                 val result = repository.signInWithGoogle(this@LoginActivity)
                 result.onSuccess {
                     Toast.makeText(this@LoginActivity, "Login Successful", Toast.LENGTH_SHORT).show()
-                    startActivity(Intent(this@LoginActivity, DashboardActivity::class.java))
+                    startActivity(Intent(this@LoginActivity, MainNavigationActivity::class.java))
                     finish()
                 }.onFailure { e ->
                     Toast.makeText(
@@ -66,7 +66,7 @@ class LoginActivity : AppCompatActivity() {
                 val result = repository.signInWithEmail(email, password)
                 result.onSuccess {
                     Toast.makeText(this@LoginActivity, "Login Successful", Toast.LENGTH_SHORT).show()
-                    startActivity(Intent(this@LoginActivity, DashboardActivity::class.java))
+                    startActivity(Intent(this@LoginActivity, MainNavigationActivity::class.java))
                     finish()
                 }.onFailure { e ->
                     Toast.makeText(

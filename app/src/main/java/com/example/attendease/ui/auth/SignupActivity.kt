@@ -1,4 +1,4 @@
-package com.example.attendease
+package com.example.attendease.ui.auth
 
 import android.annotation.SuppressLint
 import android.content.Intent
@@ -9,9 +9,9 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
+import com.example.attendease.R
 import com.example.attendease.data.repositories.AuthRepository
 import com.example.attendease.databinding.SignupScreenBinding
-import com.example.attendease.ui.auth.LoginActivity
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
 

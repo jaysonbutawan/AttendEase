@@ -6,7 +6,7 @@
 
     <!-- Secondary Colors -->
     <color name="accent_teal">#26A69A</color>
-    <color name="blue">#1832BF</color>
+    <color name="blue">#4F75FF</color>
 
     <!-- Background Colors -->
     <color name="background_color">#F8F9FA</color>
@@ -27,6 +27,6 @@
     <!-- Dark Theme Colors (Optional) -->
     <color name="dark_background">#121212</color>
     <color name="dark_surface">#1E1E1E</color>
-    <color name="dark_primary_text">#FFFFFF</color>
+    <color name="white">#FFFCFB</color>
     <color name="dark_secondary_text">#B3B3B3</color>
 </resources>

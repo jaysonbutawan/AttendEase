@@ -12,10 +12,16 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.AttendEase">
         <activity
-            android:name=".ui.dashboard.DashboardActivity"
+            android:name=".ui.dashboard.AttendanceReportActivity"
             android:exported="false" />
         <activity
-            android:name=".SignupActivity"
+            android:name=".ui.dashboard.ManageClassActivity"
+            android:exported="false" />
+        <activity
+            android:name=".ui.dashboard.MainNavigationActivity"
+            android:exported="false" />
+        <activity
+            android:name=".ui.auth.SignupActivity"
             android:exported="false" />
         <activity
             android:name=".ui.auth.LoginActivity"

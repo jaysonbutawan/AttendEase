@@ -8,6 +8,7 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import com.example.attendease.databinding.OnboardingOptionScreenBinding
 import com.example.attendease.ui.auth.LoginActivity
+import com.example.attendease.ui.auth.SignupActivity
 
 class OnboardingOption : AppCompatActivity() {
     private lateinit var binding: OnboardingOptionScreenBinding
