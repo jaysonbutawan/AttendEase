@@ -12,10 +12,15 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.AttendEase">
         <activity
+            android:name=".ui.session.ClassScheduleDialog"
+            android:exported="false"
+            android:theme="@style/Theme.AppCompat.Dialog"
+            tools:ignore="Instantiatable" />
+        <activity
             android:name=".ui.dashboard.AttendanceReportActivity"
             android:exported="false" />
         <activity
-            android:name=".ui.dashboard.ManageClassActivity"
+            android:name=".ui.session.ManageSessionActivity"
             android:exported="false" />
         <activity
             android:name=".ui.dashboard.MainNavigationActivity"

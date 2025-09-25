@@ -7,11 +7,8 @@
     android:layout_height="match_parent"
     android:background="#FFFFFF"
     android:padding="16dp"
-    tools:context=".ui.dashboard.ManageClassActivity">
+    tools:context=".ui.session.ManageSessionActivity">
 
-    <!-- Create New Class Button -->
-
-    <!-- Upcoming Classes Label -->
     <TextView
         android:id="@+id/newClass"
         android:layout_width="wrap_content"
@@ -31,51 +28,26 @@
         android:id="@+id/upcomingClassesLabel"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="30dp"
+        android:layout_marginTop="72dp"
         android:text="Upcoming Classes"
         android:textColor="#000000"
         android:textSize="20sp"
         android:textStyle="bold"
-        app:layout_constraintTop_toBottomOf="@id/newClass"
-        app:layout_constraintStart_toStartOf="parent" />
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
 
-    <!-- Today Classes Row -->
-    <LinearLayout
-        android:id="@+id/today"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:orientation="horizontal"
-        app:layout_constraintTop_toBottomOf="@id/upcomingClassesLabel"
-        app:layout_constraintStart_toStartOf="parent">
-
-        <TextView
-            android:id="@+id/classCount"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="3"
-            android:textColor="#000000"
-            android:textSize="18sp"
-            android:textStyle="bold" />
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="6dp"
-            android:text="Today"
-            android:textColor="#666666"
-            android:textSize="18sp" />
-    </LinearLayout>
-
-    <!-- Frame for Class List or Fragment -->
     <FrameLayout
         android:id="@+id/classContainer"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
+        android:layout_width="380dp"
+        android:layout_height="404dp"
         android:layout_marginTop="16dp"
-        app:layout_constraintTop_toBottomOf="@id/today"
-        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent" />
+        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.201">
+    </FrameLayout>
+
 
 </androidx.constraintlayout.widget.ConstraintLayout>

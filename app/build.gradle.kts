@@ -64,6 +64,8 @@ dependencies {
     implementation("com.google.android.gms:play-services-auth:21.4.0")
     implementation(libs.androidx.activity.compose)
     implementation(libs.googleid)
+    implementation(libs.androidx.legacy.support.v4)
+    implementation(libs.androidx.recyclerview)
 
     // Testing
     testImplementation(libs.junit)

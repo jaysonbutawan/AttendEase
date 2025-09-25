@@ -19,4 +19,9 @@
     <string name="_reports">Attendance Reports</string>
     <string name="teacher">Teacher</string>
     <string name="attend_ease">Attend Ease</string>
+    <string name="schedule_class">Schedule Class</string>
+    <string name="select_end_time">Select end time</string>
+    <string name="end_time">End Time</string>
+    <string name="select_start_time">Select start time</string>
+    <string name="start_time">Start Time</string>
 </resources>
