@@ -1,167 +1,119 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content"
+    android:layout_height="match_parent"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:orientation="vertical"
-    android:padding="8dp">
+    android:background="#f8fafc"
+    android:padding="16dp">
 
-    <!-- Single Bill Card -->
     <androidx.cardview.widget.CardView
-        android:id="@+id/cardView"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="8dp"
-        app:cardCornerRadius="8dp"
+        android:layout_marginBottom="16dp"
+        app:cardCornerRadius="12dp"
         app:cardElevation="4dp"
-        app:cardBackgroundColor="@color/white">
+        app:cardBackgroundColor="@android:color/white">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="16dp">
+            android:padding="20dp">
 
-            <!-- Bill Reference and Status -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
-                android:gravity="center_vertical">
+                android:layout_marginBottom="8dp">
 
                 <TextView
-                    android:id="@+id/tvBillReference"
+                    android:id="@+id/tvSubjectName"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="REF-123456"
-                    android:textSize="16sp"
+                    android:text="@string/data_structures"
+                    android:textSize="20sp"
                     android:textStyle="bold"
-                    tools:text="REF-123456"/>
+                    android:textColor="#1e40af" />
 
                 <TextView
-                    android:id="@+id/tvStatus"
+                    android:id="@+id/tvRoomCode"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Unpaid"
-                    android:textColor="@color/blue"
-                    android:textSize="14sp"
+                    android:text="@string/cs_101"
                     android:textStyle="bold"
+                    android:drawablePadding="8dp"
+                    android:gravity="center_vertical"
+                    android:textSize="14sp"
+                    android:textColor="#64748b"
+                    android:background="@drawable/badge_background"
                     android:paddingHorizontal="8dp"
                     android:paddingVertical="4dp"
-                    tools:text="Unpaid"/>
+                    app:drawableStartCompat="@drawable/classroom" />
             </LinearLayout>
 
-            <!-- Appointment ID and Date Issued -->
+            <!-- Time Row -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
-                android:layout_marginTop="8dp">
+                android:layout_marginBottom="12dp"
+                android:gravity="center_vertical">
+
+                <ImageView
+                    android:layout_width="16dp"
+                    android:layout_height="16dp"
+                    android:src="@drawable/clock"
+                    android:layout_marginEnd="8dp" />
 
                 <TextView
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="Appointment ID:"
-                    android:textSize="14sp"/>
-
-                <TextView
-                    android:id="@+id/tvAppointmentId"
+                    android:id="@+id/tvTime"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="123"
-                    android:textSize="14sp"
-                    android:textStyle="bold"
-                    tools:text="123"/>
-            </LinearLayout>
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:layout_marginTop="4dp">
-
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="Date Issued:"
-                    android:textSize="14sp"/>
-
-                <TextView
-                    android:id="@+id/tvDateIssued"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="2023-10-15 14:30"
-                    android:textSize="14sp"
-                    tools:text="2023-10-15 14:30"/>
-            </LinearLayout>
-
-            <!-- Paid Date (only visible for paid bills) -->
-            <LinearLayout
-                android:id="@+id/llPaidDate"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:layout_marginTop="4dp"
-                android:visibility="gone">
-
-                <TextView
-                    android:id="@+id/tvPaidDateLabel"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="Paid Date:"
-                    android:textSize="14sp"/>
-
-                <TextView
-                    android:id="@+id/tvPaidDate"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="2023-10-12 16:45"
-                    android:textSize="14sp"
-                    tools:text="2023-10-12 16:45"/>
-            </LinearLayout>
-
-            <!-- Total Amount -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:layout_marginTop="8dp">
-
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="Total Amount:"
+                    android:text="@string/_09_00_am_10_30_am"
                     android:textSize="16sp"
-                    android:textStyle="bold"/>
-
-                <TextView
-                    android:id="@+id/tvTotalAmount"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="$150.00"
-                    android:textSize="16sp"
-                    android:textStyle="bold"
-                    android:textColor="@color/blue"
-                    tools:text="$150.00"/>
+                    android:textColor="#475569" />
             </LinearLayout>
 
-            <!-- Action Button -->
+            <!-- Location Row -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginBottom="16dp"
+                android:gravity="center_vertical">
+
+                <ImageView
+                    android:layout_width="16dp"
+                    android:layout_height="16dp"
+                    android:src="@drawable/schedule"
+                    android:layout_marginEnd="8dp" />
+
+                <TextView
+                    android:id="@+id/tvDate"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/date_25th_dec_2024"
+                    android:textSize="14sp"
+                    android:textColor="#475569" />
+            </LinearLayout>
+
             <Button
-                android:id="@+id/btnPayNow"
+                android:id="@+id/startClassButton"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                android:text="Pay Now"
-                android:textAllCaps="false"
-                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                android:backgroundTint="@color/blue"/>
+                android:text="@string/start_class_session"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:background="@drawable/rounded_button"
+                android:textColor="@android:color/white"
+                android:paddingVertical="12dp" />
+
         </LinearLayout>
+
     </androidx.cardview.widget.CardView>
+
+
 
 </LinearLayout>

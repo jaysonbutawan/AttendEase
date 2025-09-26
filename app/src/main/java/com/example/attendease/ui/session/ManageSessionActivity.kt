@@ -8,6 +8,7 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import com.example.attendease.R
 import com.example.attendease.databinding.ManageClassScreenBinding
+import com.example.attendease.ui.classschedule.ClassScheduleDialog
 
 class ManageSessionActivity : AppCompatActivity() {
     private lateinit var binding: ManageClassScreenBinding

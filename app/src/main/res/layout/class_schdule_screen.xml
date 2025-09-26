@@ -6,7 +6,7 @@
     android:layout_height="match_parent"
     android:background="@android:color/transparent"
     android:visibility="visible"
-    tools:context=".ui.session.ClassScheduleDialog">
+    tools:context=".ui.classschedule.ClassScheduleDialog">
 
     <!-- Form Container -->
     <LinearLayout
@@ -29,7 +29,7 @@
             android:textColor="#333333"
             android:layout_marginBottom="20dp" />
 
-        <!-- Subject Dropdown -->
+        <!-- Subject Input -->
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -38,15 +38,17 @@
             android:textColor="#333333"
             android:layout_marginBottom="8dp" />
 
-        <Spinner
-            android:id="@+id/spinnerSubject"
+        <EditText
+            android:id="@+id/editTextSubject"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:hint="Enter subject"
             android:background="@drawable/edit_text_background"
             android:padding="12dp"
-            android:layout_marginBottom="16dp" />
+            android:layout_marginBottom="16dp"
+            android:inputType="textCapWords" />
 
-        <!-- Room Dropdown -->
+        <!-- Room Dropdown (keep spinner) -->
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -76,13 +78,14 @@
             android:id="@+id/editTextDate"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="25/09/2025"
+            android:hint="Select a date"
             android:background="@drawable/edit_text_background"
             android:padding="12dp"
             android:layout_marginBottom="16dp"
-            android:inputType="date" />
+            android:focusable="false"
+            android:clickable="true" />
 
-        <!-- Time Selection -->
+        <!-- Time Selection (unchanged) -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -115,8 +118,6 @@
                     android:clickable="true"
                     android:background="@drawable/edit_text_background"
                     android:padding="12dp"/>
-
-
             </LinearLayout>
 
             <!-- End Time -->
@@ -144,7 +145,6 @@
                     android:clickable="true"
                     android:background="@drawable/edit_text_background"
                     android:padding="12dp"/>
-
             </LinearLayout>
         </LinearLayout>
 

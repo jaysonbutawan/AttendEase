@@ -1,18 +1,28 @@
-package com.example.attendease.ui.session
+package com.example.attendease.ui.classschedule
 
+import android.R
+import android.app.DatePickerDialog
 import android.app.TimePickerDialog
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ArrayAdapter
 import androidx.fragment.app.DialogFragment
+import androidx.lifecycle.ViewModelProvider
+import com.example.attendease.data.model.ClassSession
+import com.example.attendease.data.repositories.SessionRepository
 import com.example.attendease.databinding.ClassSchduleScreenBinding
+import com.example.attendease.ui.roomlist.RoomListViewModel
+import com.google.firebase.auth.FirebaseAuth
 import java.util.Calendar
 
 class ClassScheduleDialog : DialogFragment() {
 
     private var _binding: ClassSchduleScreenBinding? = null
     private val binding get() = _binding!!
+    private lateinit var viewModel: RoomListViewModel
+    private val repo = SessionRepository()
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -24,7 +34,22 @@ class ClassScheduleDialog : DialogFragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        viewModel = ViewModelProvider(this)[RoomListViewModel::class.java]
 
+        // Observe rooms and set adapter for spinner
+        viewModel.rooms.observe(viewLifecycleOwner) { roomList ->
+            val adapter = ArrayAdapter(
+                requireContext(),
+                R.layout.simple_spinner_item,
+                roomList.map { it.name }
+            )
+            adapter.setDropDownViewResource(R.layout.simple_spinner_dropdown_item)
+            binding.spinnerRoom.adapter = adapter
+        }
+
+        viewModel.loadRooms()
+
+        // Start time picker
         binding.startTimePicker.setOnClickListener {
             val cal = Calendar.getInstance()
             val hour = cal.get(Calendar.HOUR_OF_DAY)
@@ -45,6 +70,7 @@ class ClassScheduleDialog : DialogFragment() {
             ).show()
         }
 
+        // End time picker
         binding.endTimePicker.setOnClickListener {
             val cal = Calendar.getInstance()
             val hour = cal.get(Calendar.HOUR_OF_DAY)
@@ -64,6 +90,44 @@ class ClassScheduleDialog : DialogFragment() {
                 false
             ).show()
         }
+
+        // Date picker
+        binding.editTextDate.setOnClickListener {
+            val calendar = Calendar.getInstance()
+            val year = calendar.get(Calendar.YEAR)
+            val month = calendar.get(Calendar.MONTH)
+            val day = calendar.get(Calendar.DAY_OF_MONTH)
+
+            DatePickerDialog(
+                requireContext(),
+                { _, selectedYear, selectedMonth, selectedDay ->
+                    val date = "$selectedDay/${selectedMonth + 1}/$selectedYear"
+                    binding.editTextDate.setText(date)
+                },
+                year,
+                month,
+                day
+            ).show()
+        }
+
+        binding.btnSchedule.setOnClickListener {
+            val session = ClassSession(
+                roomId = binding.spinnerRoom.selectedItem.toString(),
+                subject = binding.editTextSubject.text.toString(),
+                date = binding.editTextDate.text.toString(),
+                startTime = binding.startTimePicker.text.toString(),
+                endTime = binding.endTimePicker.text.toString(),
+                allowanceTime = 10,
+                teacherId = FirebaseAuth.getInstance().currentUser?.uid ?: "",
+                qrCode = ""
+            )
+            repo.createSession(session) { success, sessionId ->
+                if (success) {
+                    dismiss()
+                }
+            }
+
+        }
     }
 
     override fun onStart() {
@@ -72,7 +136,7 @@ class ClassScheduleDialog : DialogFragment() {
             ViewGroup.LayoutParams.MATCH_PARENT,
             ViewGroup.LayoutParams.MATCH_PARENT
         )
-        dialog?.window?.setBackgroundDrawableResource(android.R.color.transparent)
+        dialog?.window?.setBackgroundDrawableResource(R.color.transparent)
     }
 
     override fun onDestroyView() {

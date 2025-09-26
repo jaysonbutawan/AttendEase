@@ -1,4 +1,29 @@
 package com.example.attendease.ui.session
 
-class SessionList {
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.ViewModel
+import com.example.attendease.data.model.ClassSession
+import com.example.attendease.data.repositories.SessionRepository
+
+class SessionList : ViewModel() {
+
+    private val repository = SessionRepository()
+
+    private val _sessions = MutableLiveData<List<ClassSession>>()
+    val sessions: LiveData<List<ClassSession>> get() = _sessions
+
+    private val _error = MutableLiveData<String>()
+    val error: LiveData<String> get() = _error
+
+    fun loadSessions() {
+        repository.getSessions(
+            onResult = { sessionList ->
+                _sessions.postValue(sessionList)
+            },
+            onError = { errorMessage ->
+                _error.postValue(errorMessage)
+            }
+        )
+    }
 }

@@ -12,7 +12,7 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.AttendEase">
         <activity
-            android:name=".ui.session.ClassScheduleDialog"
+            android:name=".ui.classschedule.ClassScheduleDialog"
             android:exported="false"
             android:theme="@style/Theme.AppCompat.Dialog"
             tools:ignore="Instantiatable" />
