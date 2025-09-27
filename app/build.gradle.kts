@@ -36,10 +36,14 @@ android {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
-    kotlinOptions {
-        jvmTarget = "11"
+    kotlin {
+        compilerOptions {
+            jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11)
+        }
     }
+
 }
+
 
 dependencies {
     // Core
@@ -57,6 +61,7 @@ dependencies {
     implementation("androidx.credentials:credentials-play-services-auth:1.5.0")
 
     // Firebase
+    implementation (platform("com.google.firebase:firebase-bom:34.3.0"))
     implementation(libs.firebase.auth.ktx)
     implementation(libs.firebase.database)
 

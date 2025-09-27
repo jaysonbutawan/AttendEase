@@ -2,7 +2,8 @@ package com.example.attendease.data.model
 
 data class ClassSession(
     val sessionId: String? = null,
-    val roomId: String? = null,
+    var roomId: String? = null,
+    var roomName: String? = null,
     val subject: String? = null,
     val date: String? = null,
     val startTime: String? = null,

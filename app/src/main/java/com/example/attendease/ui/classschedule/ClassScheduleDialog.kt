@@ -1,21 +1,25 @@
 package com.example.attendease.ui.classschedule
 
-import android.R
+import android.annotation.SuppressLint
 import android.app.DatePickerDialog
 import android.app.TimePickerDialog
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ArrayAdapter
 import androidx.fragment.app.DialogFragment
 import androidx.lifecycle.ViewModelProvider
+import com.example.attendease.R
 import com.example.attendease.data.model.ClassSession
+import com.example.attendease.data.model.Room
 import com.example.attendease.data.repositories.SessionRepository
 import com.example.attendease.databinding.ClassSchduleScreenBinding
 import com.example.attendease.ui.roomlist.RoomListViewModel
 import com.google.firebase.auth.FirebaseAuth
 import java.util.Calendar
+
 
 class ClassScheduleDialog : DialogFragment() {
 
@@ -32,18 +36,18 @@ class ClassScheduleDialog : DialogFragment() {
         return binding.root
     }
 
+    @SuppressLint("DefaultLocale")
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        viewModel = ViewModelProvider(this)[RoomListViewModel::class.java]
+        viewModel = ViewModelProvider(requireActivity())[RoomListViewModel::class.java]
 
-        // Observe rooms and set adapter for spinner
         viewModel.rooms.observe(viewLifecycleOwner) { roomList ->
             val adapter = ArrayAdapter(
                 requireContext(),
-                R.layout.simple_spinner_item,
-                roomList.map { it.name }
+                android.R.layout.simple_spinner_item,
+                roomList
             )
-            adapter.setDropDownViewResource(R.layout.simple_spinner_dropdown_item)
+            adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
             binding.spinnerRoom.adapter = adapter
         }
 
@@ -60,9 +64,9 @@ class ClassScheduleDialog : DialogFragment() {
                 { _, selectedHour, selectedMinute ->
                     val amPm = if (selectedHour < 12) "AM" else "PM"
                     val formattedHour = if (selectedHour % 12 == 0) 12 else selectedHour % 12
-                    binding.startTimePicker.setText(
-                        String.format("%02d:%02d %s", formattedHour, selectedMinute, amPm)
-                    )
+                    val formatted = String.format("%02d:%02d %s", formattedHour, selectedMinute, amPm)
+                    binding.startTimePicker.setText(formatted)
+                    Log.d("ClassScheduleDialog", "Start time picked: $formatted")
                 },
                 hour,
                 minute,
@@ -81,9 +85,9 @@ class ClassScheduleDialog : DialogFragment() {
                 { _, selectedHour, selectedMinute ->
                     val amPm = if (selectedHour < 12) "AM" else "PM"
                     val formattedHour = if (selectedHour % 12 == 0) 12 else selectedHour % 12
-                    binding.endTimePicker.setText(
-                        String.format("%02d:%02d %s", formattedHour, selectedMinute, amPm)
-                    )
+                    val formatted = String.format("%02d:%02d %s", formattedHour, selectedMinute, amPm)
+                    binding.endTimePicker.setText(formatted)
+                    Log.d("ClassScheduleDialog", "End time picked: $formatted")
                 },
                 hour,
                 minute,
@@ -103,6 +107,7 @@ class ClassScheduleDialog : DialogFragment() {
                 { _, selectedYear, selectedMonth, selectedDay ->
                     val date = "$selectedDay/${selectedMonth + 1}/$selectedYear"
                     binding.editTextDate.setText(date)
+                    Log.d("ClassScheduleDialog", "Date picked: $date")
                 },
                 year,
                 month,
@@ -111,23 +116,28 @@ class ClassScheduleDialog : DialogFragment() {
         }
 
         binding.btnSchedule.setOnClickListener {
-            val session = ClassSession(
-                roomId = binding.spinnerRoom.selectedItem.toString(),
-                subject = binding.editTextSubject.text.toString(),
-                date = binding.editTextDate.text.toString(),
-                startTime = binding.startTimePicker.text.toString(),
-                endTime = binding.endTimePicker.text.toString(),
-                allowanceTime = 10,
-                teacherId = FirebaseAuth.getInstance().currentUser?.uid ?: "",
-                qrCode = ""
-            )
-            repo.createSession(session) { success, sessionId ->
-                if (success) {
-                    dismiss()
+            val selectedRoom = binding.spinnerRoom.selectedItem as? Room
+            if (selectedRoom != null) {
+                val session = ClassSession(
+                    roomId = selectedRoom.roomId ?: "", // 👈 get the ID safely
+                    subject = binding.editTextSubject.text.toString(),
+                    date = binding.editTextDate.text.toString(),
+                    startTime = binding.startTimePicker.text.toString(),
+                    endTime = binding.endTimePicker.text.toString(),
+                    allowanceTime = 10,
+                    teacherId = FirebaseAuth.getInstance().currentUser?.uid ?: "",
+                    qrCode = ""
+                )
+                repo.createSession(session) { success, sessionId ->
+                    if (success) dismiss()
+                    Log.d("ClassScheduleDialog", "Session created with ID: $selectedRoom")
                 }
+            } else {
+                Log.e("ClassScheduleDialog", "No room selected!")
             }
-
         }
+
+
     }
 
     override fun onStart() {
@@ -136,7 +146,7 @@ class ClassScheduleDialog : DialogFragment() {
             ViewGroup.LayoutParams.MATCH_PARENT,
             ViewGroup.LayoutParams.MATCH_PARENT
         )
-        dialog?.window?.setBackgroundDrawableResource(R.color.transparent)
+        dialog?.window?.setBackgroundDrawableResource(R.color.secondary_text)
     }
 
     override fun onDestroyView() {

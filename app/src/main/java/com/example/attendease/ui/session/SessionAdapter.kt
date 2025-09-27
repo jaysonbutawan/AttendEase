@@ -1,18 +1,15 @@
 package com.example.attendease.ui.session
 
 import android.annotation.SuppressLint
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import com.example.attendease.data.model.ClassSession
 import com.example.attendease.databinding.SessionItemCardBinding
-
-// Data model for session
-
 class SessionAdapter(
     private val sessionList: List<ClassSession>,
-    private val onStartClassClick: (ClassSession) -> Unit
-) : RecyclerView.Adapter<SessionAdapter.SessionViewHolder>() {
+    private val onStartClassClick: (ClassSession) -> Unit) : RecyclerView.Adapter<SessionAdapter.SessionViewHolder>() {
 
     inner class SessionViewHolder(val binding: SessionItemCardBinding) :
         RecyclerView.ViewHolder(binding.root)
@@ -31,15 +28,14 @@ class SessionAdapter(
         val session = sessionList[position]
         with(holder.binding) {
             tvSubjectName.text = session.subject
-            tvRoomCode.text = session.roomId
+            tvRoomCode.text = session.roomName?: session.roomId
             tvTime.text = session.startTime + " - " + session.endTime
             tvDate.text = session.date
 
             startClassButton.setOnClickListener {
-                onStartClassClick(session)
-            }
+                Log.d("Session", "Start button clicked for session: ${session.sessionId}")
+                onStartClassClick(session)}
         }
     }
-
     override fun getItemCount(): Int = sessionList.size
 }

@@ -16,6 +16,7 @@ import com.example.attendease.ui.classschedule.ClassScheduleDialog
 class ManageSessionActivity : AppCompatActivity() {
     private lateinit var binding: ManageClassScreenBinding
     private lateinit var adapter: SessionAdapter
+
     private val sessionListViewModel: SessionList by viewModels()
 
     @SuppressLint("MissingInflatedId")
@@ -31,18 +32,15 @@ class ManageSessionActivity : AppCompatActivity() {
             insets
         }
 
-        // Setup RecyclerView
         adapter = SessionAdapter(emptyList()) { session ->
-            Toast.makeText(this, "Start class: ${session.subject}", Toast.LENGTH_SHORT).show()
+            openSessionFragment(session.sessionId)
         }
-
         binding.classSessionContainer.layoutManager = LinearLayoutManager(this)
         binding.classSessionContainer.adapter = adapter
 
-        // Observe LiveData from ViewModel
         sessionListViewModel.sessions.observe(this) { sessionList ->
             adapter = SessionAdapter(sessionList) { session ->
-                Toast.makeText(this, "Start class: ${session.subject}", Toast.LENGTH_SHORT).show()
+                openSessionFragment(session.sessionId)
             }
             binding.classSessionContainer.adapter = adapter
         }
@@ -51,13 +49,24 @@ class ManageSessionActivity : AppCompatActivity() {
             Toast.makeText(this, "Error: $errorMessage", Toast.LENGTH_SHORT).show()
         }
 
-        // Load sessions from Firebase
         sessionListViewModel.loadSessions()
 
-        // Handle new class button
         binding.newClass.setOnClickListener {
             val dialog = ClassScheduleDialog()
             dialog.show(supportFragmentManager, "ClassScheduleDialog")
         }
+    }
+
+    private fun openSessionFragment(sessionId: String?) {
+        val fragment = SessionFragment().apply {
+            arguments = Bundle().apply {
+                putString("sessionId", sessionId)
+            }
+        }
+
+        supportFragmentManager.beginTransaction()
+            .replace(R.id.main, fragment)
+            .addToBackStack(null)
+            .commit()
     }
 }

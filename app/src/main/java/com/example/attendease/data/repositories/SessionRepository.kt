@@ -1,5 +1,6 @@
 package com.example.attendease.data.repositories
 
+import android.util.Log
 import com.example.attendease.data.model.ClassSession
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
@@ -26,13 +27,34 @@ class SessionRepository {
             .addOnFailureListener { callback(false, null) }
     }
 
-    fun getSessions(onResult: (List<ClassSession>) -> Unit, onError: (String) -> Unit) {
-        db.addValueEventListener(object : ValueEventListener {
+    fun getSessions(
+        onResult: (List<ClassSession>) -> Unit,
+        onError: (String) -> Unit
+    ) {
+        val roomsRef = FirebaseDatabase.getInstance().getReference("rooms")
+
+        roomsRef.addValueEventListener(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 val sessionList = mutableListOf<ClassSession>()
-                for (sessionSnapshot in snapshot.children) {
-                    val session = sessionSnapshot.getValue(ClassSession::class.java)
-                    session?.let { sessionList.add(it) }
+                for (roomSnapshot in snapshot.children) {
+                    val roomId = roomSnapshot.key
+                    val roomName = roomSnapshot.child("name").getValue(String::class.java) ?: "Unknown Room"
+                    val sessionsSnapshot = roomSnapshot.child("sessions")
+
+                    for (sessionSnapshot in sessionsSnapshot.children) {
+                        val session = sessionSnapshot.getValue(ClassSession::class.java)
+                        session?.let {
+                            it.roomName = roomName
+                            it.roomId = roomId
+                            sessionList.add(it)
+
+                            // Debugging log
+                            Log.d(
+                                "SessionRepository",
+                                "Loaded session: ${it.subject} in Room: $roomName ($roomId)"
+                            )
+                        }
+                    }
                 }
                 onResult(sessionList)
             }
@@ -45,12 +67,14 @@ class SessionRepository {
 
 
 
-    fun updateQrCode(sessionId: String, qrCode: String) {
-        db.child(sessionId).child("qrCode").setValue(qrCode)
-        db.child(sessionId).child("qrGeneratedAt").setValue(System.currentTimeMillis())
-    }
 
-    fun generateSessionId(): String {
-        return "session_${System.currentTimeMillis()}"
+
+    fun updateQrCode(sessionId: String, qrCode: String) {
+        val qrData = mapOf(
+            "qrCode" to qrCode,
+            "qrValid" to true,
+            "updatedAt" to System.currentTimeMillis()
+        )
+        db.child(sessionId).updateChildren(qrData)
     }
 }
