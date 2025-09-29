@@ -2,6 +2,7 @@ package com.example.attendease.data.repositories
 
 import android.util.Log
 import com.example.attendease.data.model.ClassSession
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.FirebaseDatabase
@@ -32,6 +33,7 @@ class SessionRepository {
         onError: (String) -> Unit
     ) {
         val roomsRef = FirebaseDatabase.getInstance().getReference("rooms")
+        val currentTeacherId = FirebaseAuth.getInstance().currentUser?.uid
 
         roomsRef.addValueEventListener(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
@@ -46,13 +48,17 @@ class SessionRepository {
                         session?.let {
                             it.roomName = roomName
                             it.roomId = roomId
-                            sessionList.add(it)
 
-                            // Debugging log
-                            Log.d(
-                                "SessionRepository",
-                                "Loaded session: ${it.subject} in Room: $roomName ($roomId)"
-                            )
+                            // Only add session if it belongs to the logged-in teacher
+                            if (it.teacherId == currentTeacherId) {
+                                sessionList.add(it)
+
+                                // Debugging log
+                                Log.d(
+                                    "SessionRepository",
+                                    "Loaded session: ${it.subject} in Room: $roomName ($roomId)"
+                                )
+                            }
                         }
                     }
                 }
@@ -64,6 +70,7 @@ class SessionRepository {
             }
         })
     }
+
 
 
 

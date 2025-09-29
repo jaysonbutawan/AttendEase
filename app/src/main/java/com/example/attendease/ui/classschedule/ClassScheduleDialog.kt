@@ -3,11 +3,14 @@ package com.example.attendease.ui.classschedule
 import android.annotation.SuppressLint
 import android.app.DatePickerDialog
 import android.app.TimePickerDialog
+import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.WindowManager
 import android.widget.ArrayAdapter
 import androidx.fragment.app.DialogFragment
 import androidx.lifecycle.ViewModelProvider
@@ -19,6 +22,7 @@ import com.example.attendease.databinding.ClassSchduleScreenBinding
 import com.example.attendease.ui.roomlist.RoomListViewModel
 import com.google.firebase.auth.FirebaseAuth
 import java.util.Calendar
+import androidx.core.graphics.drawable.toDrawable
 
 
 class ClassScheduleDialog : DialogFragment() {
@@ -146,7 +150,8 @@ class ClassScheduleDialog : DialogFragment() {
             ViewGroup.LayoutParams.MATCH_PARENT,
             ViewGroup.LayoutParams.MATCH_PARENT
         )
-        dialog?.window?.setBackgroundDrawableResource(R.color.secondary_text)
+        dialog?.window?.setBackgroundDrawable(Color.TRANSPARENT.toDrawable())
+        dialog?.window?.setDimAmount(0.6f)
     }
 
     override fun onDestroyView() {

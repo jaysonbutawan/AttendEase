@@ -9,45 +9,70 @@
     tools:context=".ui.session.SessionFragment"
     android:background="@android:color/white">
 
-    <!-- Header / Title -->
-    <TextView
-        android:id="@+id/tvSessionTitle"
-        android:layout_width="0dp"
+    <ImageButton
+        android:id="@+id/todayButton"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Session QR Code"
-        android:textSize="24sp"
-        android:textStyle="bold"
-        android:gravity="center"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
+        android:layout_marginTop="16dp"
+        android:background="@android:color/transparent"
+        android:contentDescription="@string/today"
+        android:src="@drawable/settings"
+        app:tint="@null"
         app:layout_constraintEnd_toEndOf="parent"
-        android:paddingTop="24dp"/>
-
-    <!-- QR Code Image -->
-    <ImageView
-        android:id="@+id/qrImageView"
-        android:layout_width="200dp"
-        android:layout_height="200dp"
-        android:contentDescription="Generated QR Code"
-        app:layout_constraintTop_toBottomOf="@id/tvSessionTitle"
-        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintHorizontal_bias="0.915"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginTop="32dp"
-        android:layout_marginBottom="32dp"/>
+        app:layout_constraintTop_toTopOf="parent"/>
 
-    <!-- Optional: Info / Instructions -->
-    <TextView
-        android:id="@+id/tvInstruction"
-        android:layout_width="0dp"
+
+    <androidx.cardview.widget.CardView
+        android:id="@+id/sessionCard"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Scan this QR code to join the session"
-        android:gravity="center"
-        android:textSize="16sp"
-        android:textColor="@android:color/darker_gray"
-        app:layout_constraintTop_toBottomOf="@id/qrImageView"
+        android:layout_margin="16dp"
+        app:cardCornerRadius="12dp"
+        app:cardElevation="6dp"
+        app:cardUseCompatPadding="true"
+        app:layout_constraintTop_toBottomOf="@id/todayButton"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginBottom="16dp"/>
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <LinearLayout
+            android:id="@+id/qrCodeLayout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:padding="16dp">
+
+            <TextView
+                android:id="@+id/tvSessionTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/session_qr_code"
+                android:textSize="24sp"
+                android:textStyle="bold"
+                android:layout_marginBottom="2dp"
+                android:gravity="center" />
+
+            <ImageView
+                android:id="@+id/qrImageView"
+                android:layout_width="250dp"
+                android:layout_height="250dp"
+                android:layout_marginBottom="2dp"
+                android:contentDescription="@string/schedule_class" />
+
+            <TextView
+                android:id="@+id/tvInstruction"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/scan_this_qr_code_to_join_the_session"
+                android:gravity="center"
+                android:textSize="16sp"
+                android:textColor="@android:color/darker_gray"
+                 />
+
+        </LinearLayout>
+    </androidx.cardview.widget.CardView>
+
 
 </androidx.constraintlayout.widget.ConstraintLayout>
