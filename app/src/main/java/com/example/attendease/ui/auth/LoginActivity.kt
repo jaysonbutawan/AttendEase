@@ -9,7 +9,6 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
 import com.example.attendease.R
-import com.example.attendease.ui.auth.SignupActivity
 import com.example.attendease.data.repositories.AuthRepository
 import com.example.attendease.databinding.LoginScreenBinding
 import com.example.attendease.ui.dashboard.MainNavigationActivity

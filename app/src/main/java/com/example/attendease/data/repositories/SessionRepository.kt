@@ -3,24 +3,21 @@ package com.example.attendease.data.repositories
 import android.util.Log
 import com.example.attendease.data.model.ClassSession
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.database.DataSnapshot
-import com.google.firebase.database.DatabaseError
-import com.google.firebase.database.FirebaseDatabase
-import com.google.firebase.database.ValueEventListener
+import com.google.firebase.database.*
 
 class SessionRepository {
-    private val db = FirebaseDatabase.getInstance().getReference("sessions")
+    private val roomsRef = FirebaseDatabase.getInstance().getReference("rooms")
 
+    // ✅ Create a new session under the correct room
     fun createSession(session: ClassSession, callback: (Boolean, String?) -> Unit) {
-        val sessionId = db.push().key
+        val sessionId = roomsRef.push().key
         if (sessionId == null) {
             callback(false, null)
             return
         }
+
         val sessionWithId = session.copy(sessionId = sessionId)
-        FirebaseDatabase.getInstance()
-            .getReference("rooms")
-            .child(session.roomId ?: "unknown")
+        roomsRef.child(session.roomId ?: "unknown")
             .child("sessions")
             .child(sessionId)
             .setValue(sessionWithId)
@@ -28,11 +25,11 @@ class SessionRepository {
             .addOnFailureListener { callback(false, null) }
     }
 
+    // ✅ Get all sessions for the logged-in teacher
     fun getSessions(
         onResult: (List<ClassSession>) -> Unit,
         onError: (String) -> Unit
     ) {
-        val roomsRef = FirebaseDatabase.getInstance().getReference("rooms")
         val currentTeacherId = FirebaseAuth.getInstance().currentUser?.uid
 
         roomsRef.addValueEventListener(object : ValueEventListener {
@@ -49,11 +46,10 @@ class SessionRepository {
                             it.roomName = roomName
                             it.roomId = roomId
 
-                            // Only add session if it belongs to the logged-in teacher
+                            // Only sessions of the logged-in teacher
                             if (it.teacherId == currentTeacherId) {
                                 sessionList.add(it)
 
-                                // Debugging log
                                 Log.d(
                                     "SessionRepository",
                                     "Loaded session: ${it.subject} in Room: $roomName ($roomId)"
@@ -71,17 +67,17 @@ class SessionRepository {
         })
     }
 
-
-
-
-
-
-    fun updateQrCode(sessionId: String, qrCode: String) {
+    // ✅ Update QR code for a session (inside its room)
+    fun updateQrCode(roomId: String, sessionId: String, qrCode: String) {
         val qrData = mapOf(
             "qrCode" to qrCode,
             "qrValid" to true,
             "updatedAt" to System.currentTimeMillis()
         )
-        db.child(sessionId).updateChildren(qrData)
+
+        roomsRef.child(roomId)
+            .child("sessions")
+            .child(sessionId)
+            .updateChildren(qrData)
     }
 }

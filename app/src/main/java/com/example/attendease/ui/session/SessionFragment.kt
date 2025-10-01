@@ -17,43 +17,59 @@ class SessionFragment : Fragment() {
 
     private var qrHandler: Handler? = null
     private lateinit var viewModel: SessionViewModel
-    private lateinit var binding: FragmentSessionBinding
+    private var _binding: FragmentSessionBinding? = null
+    private val binding get() = _binding!!
+
     private lateinit var qrRunnable: Runnable
+    private var roomId: String? = null
+    private var sessionId: String? = null
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-        binding = FragmentSessionBinding.inflate(inflater, container, false)
+        _binding = FragmentSessionBinding.inflate(inflater, container, false)
         return binding.root
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        // Init ViewModel
         val repository = SessionRepository()
         val factory = SessionViewModelFactory(repository)
         viewModel = ViewModelProvider(this, factory)[SessionViewModel::class.java]
 
-        val sessionId = arguments?.getString("sessionId") ?: run {
-            Log.e("SessionFragment", "sessionId is null")
+        // ✅ Get arguments safely
+        sessionId = arguments?.getString("sessionId")
+        roomId = arguments?.getString("roomId")
+
+        if (sessionId.isNullOrEmpty() || roomId.isNullOrEmpty()) {
+            Log.e("SessionFragment", "❌ sessionId or roomId is missing in arguments")
             return
         }
-        Log.d("SessionFragment", "SessionFragment opened with sessionId: $sessionId")
 
-        startQrCodeGeneration(sessionId)
+        Log.d("SessionFragment", "✅ Opened with sessionId=$sessionId, roomId=$roomId")
+
+        startQrCodeGeneration()
     }
 
-    private fun startQrCodeGeneration(sessionId: String) {
+    private fun startQrCodeGeneration() {
         qrRunnable = object : Runnable {
             override fun run() {
-                val qrCode = QrUtils.generateQrCode(sessionId)
+                val sessionIdValue = sessionId ?: return
+                val roomIdValue = roomId ?: return
 
-                viewModel.updateQr(sessionId, qrCode)
+                val qrCode = QrUtils.generateQrCode(sessionIdValue)
 
+                // ✅ update in Firebase
+                viewModel.updateQr(roomIdValue, sessionIdValue, qrCode)
+
+                // ✅ update ImageView
                 val qrBitmap: Bitmap = QrUtils.generateQrBitmap(qrCode)
                 binding.qrImageView.setImageBitmap(qrBitmap)
 
+                // ✅ regenerate every 30 seconds
                 qrHandler?.postDelayed(this, 30_000)
             }
         }
@@ -65,6 +81,6 @@ class SessionFragment : Fragment() {
     override fun onDestroyView() {
         super.onDestroyView()
         qrHandler?.removeCallbacksAndMessages(null)
+        _binding = null
     }
 }
-

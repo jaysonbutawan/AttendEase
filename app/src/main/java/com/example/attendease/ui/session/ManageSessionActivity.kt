@@ -38,7 +38,7 @@ class ManageSessionActivity : AppCompatActivity() {
 
         // RecyclerView setup
         adapter = SessionAdapter(emptyList()) { session ->
-            openSessionFragment(session.sessionId)
+            openSessionFragment(session.roomId,session.sessionId)
         }
         binding.classSessionContainer.layoutManager = LinearLayoutManager(this)
         binding.classSessionContainer.adapter = adapter
@@ -47,7 +47,7 @@ class ManageSessionActivity : AppCompatActivity() {
         // Observe sessions
         sessionListViewModel.sessions.observe(this) { sessionList ->
             adapter = SessionAdapter(sessionList) { session ->
-                openSessionFragment(session.sessionId)
+                openSessionFragment(session.roomId, session.sessionId)
             }
             binding.classSessionContainer.adapter = adapter
             binding.tvClassCount.text = "  "+"${sessionList.size}"
@@ -93,10 +93,11 @@ class ManageSessionActivity : AppCompatActivity() {
         dialog.show(supportFragmentManager, "ClassScheduleDialog")
     }
 
-    private fun openSessionFragment(sessionId: String?) {
+    private fun openSessionFragment(roomId: String?, sessionId: String?) {
         val fragment = SessionFragment().apply {
             arguments = Bundle().apply {
                 putString("sessionId", sessionId)
+                putString("roomId", roomId)
             }
         }
 
