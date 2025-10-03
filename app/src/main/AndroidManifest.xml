@@ -40,14 +40,13 @@
         <activity
             android:name=".ui.splash.SplashActivity"
             android:exported="true"
-            android:noHistory="true"
-            android:screenOrientation="portrait">
+            android:noHistory="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-        </activity> <!-- Keep OnboardingOption but remove MAIN/LAUNCHER -->
+        </activity>
         <activity
             android:name=".ui.onboarding.OnboardingActivity"
             android:exported="true"
