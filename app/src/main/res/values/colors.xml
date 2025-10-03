@@ -13,6 +13,12 @@
     <color name="card_background">#FFFFFF</color>
     <color name="input_background">#F5F5F5</color>
 
+    <color name="black">#000000</color>
+    <color name="gray_light">#F5F5F5</color>
+    <color name="gray_divider">#E0E0E0</color>
+    <color name="gray_text">#757575</color>
+    <color name="red">#FF3B30</color>
+
     <!-- Text Colors -->
     <color name="primary_text">#212121</color>
     <color name="secondary_text">#757575</color>

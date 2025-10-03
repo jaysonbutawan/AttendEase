@@ -1,4 +1,4 @@
-package com.example.attendease.ui.session
+package com.example.attendease.ui.session.adapter
 
 import android.annotation.SuppressLint
 import android.view.LayoutInflater

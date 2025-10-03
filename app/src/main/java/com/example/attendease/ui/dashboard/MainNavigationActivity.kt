@@ -2,13 +2,13 @@ package com.example.attendease.ui.dashboard
 
 import android.content.Intent
 import android.os.Bundle
-import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
+import com.bumptech.glide.Glide
 import com.example.attendease.R
 import com.example.attendease.databinding.MainNavScreenBinding
-import com.example.attendease.ui.session.ManageSessionActivity
+import com.example.attendease.ui.profile.ProfileActivity
+import com.example.attendease.ui.session.ui.ManageSessionActivity
+import com.google.firebase.auth.FirebaseAuth
 
 class MainNavigationActivity : AppCompatActivity() {
 
@@ -18,22 +18,42 @@ class MainNavigationActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = MainNavScreenBinding.inflate(layoutInflater)
         setContentView(binding.root)
-        enableEdgeToEdge()
 
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.mainNavigation)) { v, insets ->
-            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
-            insets
+        val user = FirebaseAuth.getInstance().currentUser
+
+        setupUserInfo(user?.displayName, user?.email, user?.photoUrl?.toString())
+        setupClickListeners(user?.displayName, user?.email, user?.photoUrl?.toString())
+    }
+
+    private fun setupUserInfo(name: String?, email: String?, imageUrl: String?) = with(binding) {
+        tvUserName.text = name
+        if (!imageUrl.isNullOrEmpty()) {
+            Glide.with(this@MainNavigationActivity)
+                .load(imageUrl)
+                .placeholder(R.drawable.default_avatar)
+                .error(R.drawable.default_avatar)
+                .into(profileImage)
+        } else {
+            profileImage.setImageResource(R.drawable.default_avatar)
         }
-        binding.cvManageClasses.setOnClickListener {
-            startActivity(Intent(this, ManageSessionActivity::class.java))
+    }
+
+    private fun setupClickListeners(name: String?, email: String?, imageUrl: String?) = with(binding) {
+        cvManageClasses.setOnClickListener {
+            startActivity(Intent(this@MainNavigationActivity, ManageSessionActivity::class.java))
         }
 
-        binding.cvAttendanceReport.setOnClickListener {
-            startActivity(Intent(this, AttendanceReportActivity::class.java))
-            
+        cvAttendanceReport.setOnClickListener {
+            startActivity(Intent(this@MainNavigationActivity, AttendanceReportActivity::class.java))
         }
 
-
+        profileImage.setOnClickListener {
+            val intent = Intent(this@MainNavigationActivity, ProfileActivity::class.java).apply {
+                putExtra("name", name)
+                putExtra("email", email)
+                putExtra("image", imageUrl)
+            }
+            startActivity(intent)
+        }
     }
 }

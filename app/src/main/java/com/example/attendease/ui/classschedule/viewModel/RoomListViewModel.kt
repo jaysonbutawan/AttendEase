@@ -1,5 +1,4 @@
-package com.example.attendease.ui.roomlist
-
+package com.example.attendease.ui.classschedule.viewModel
 
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
@@ -10,12 +9,9 @@ import com.example.attendease.data.repositories.RoomRepository
 class RoomListViewModel : ViewModel() {
 
     private val repository = RoomRepository()
-
     private val _rooms = MutableLiveData<List<Room>>()
     val rooms: LiveData<List<Room>> get() = _rooms
-
     private val _error = MutableLiveData<String>()
-    val error: LiveData<String> get() = _error
 
     fun loadRooms() {
         repository.getRooms(

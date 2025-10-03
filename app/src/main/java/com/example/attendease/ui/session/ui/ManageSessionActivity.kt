@@ -1,6 +1,7 @@
-package com.example.attendease.ui.session
+package com.example.attendease.ui.session.ui
 
 import android.annotation.SuppressLint
+import android.content.Intent
 import android.os.Bundle
 import android.view.MotionEvent
 import android.widget.Toast
@@ -11,13 +12,15 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.attendease.R
+import com.example.attendease.ui.session.adapter.SessionAdapter
 import com.example.attendease.databinding.ManageClassScreenBinding
 import com.example.attendease.ui.classschedule.ClassScheduleDialog
+import com.example.attendease.ui.session.viewmodel.SessionListViewModel
 
 class ManageSessionActivity : AppCompatActivity() {
     private lateinit var binding: ManageClassScreenBinding
     private lateinit var adapter: SessionAdapter
-    private val sessionListViewModel: SessionList by viewModels()
+    private val sessionListViewModel: SessionListViewModel by viewModels()
 
     private var dX: Float = 0f
     private var dY: Float = 0f
@@ -38,7 +41,7 @@ class ManageSessionActivity : AppCompatActivity() {
 
         // RecyclerView setup
         adapter = SessionAdapter(emptyList()) { session ->
-            openSessionFragment(session.roomId,session.sessionId)
+            openSessionActivity(session.roomId, session.sessionId)
         }
         binding.classSessionContainer.layoutManager = LinearLayoutManager(this)
         binding.classSessionContainer.adapter = adapter
@@ -47,7 +50,7 @@ class ManageSessionActivity : AppCompatActivity() {
         // Observe sessions
         sessionListViewModel.sessions.observe(this) { sessionList ->
             adapter = SessionAdapter(sessionList) { session ->
-                openSessionFragment(session.roomId, session.sessionId)
+                openSessionActivity(session.roomId, session.sessionId)
             }
             binding.classSessionContainer.adapter = adapter
             binding.tvClassCount.text = "  "+"${sessionList.size}"
@@ -93,17 +96,12 @@ class ManageSessionActivity : AppCompatActivity() {
         dialog.show(supportFragmentManager, "ClassScheduleDialog")
     }
 
-    private fun openSessionFragment(roomId: String?, sessionId: String?) {
-        val fragment = SessionFragment().apply {
-            arguments = Bundle().apply {
-                putString("sessionId", sessionId)
-                putString("roomId", roomId)
-            }
+    private fun openSessionActivity(roomId: String?, sessionId: String?) {
+        val intent = Intent(this, SessionActivity::class.java).apply {
+            putExtra("sessionId", sessionId)
+            putExtra("roomId", roomId)
         }
-
-        supportFragmentManager.beginTransaction()
-            .replace(R.id.main, fragment)
-            .addToBackStack(null)
-            .commit()
+        startActivity(intent)
     }
+
 }

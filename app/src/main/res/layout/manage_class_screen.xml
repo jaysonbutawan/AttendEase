@@ -7,7 +7,7 @@
     android:layout_height="match_parent"
     android:background="#FFFFFF"
     android:padding="16dp"
-    tools:context=".ui.session.ManageSessionActivity">
+    tools:context=".ui.session.ui.ManageSessionActivity">
 
     <TextView
         android:id="@+id/upcomingClassesLabel"

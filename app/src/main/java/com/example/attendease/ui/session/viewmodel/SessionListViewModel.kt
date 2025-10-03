@@ -1,4 +1,4 @@
-package com.example.attendease.ui.session
+package com.example.attendease.ui.session.viewmodel
 
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
@@ -6,7 +6,7 @@ import androidx.lifecycle.ViewModel
 import com.example.attendease.data.model.ClassSession
 import com.example.attendease.data.repositories.SessionRepository
 
-class SessionList : ViewModel() {
+class SessionListViewModel : ViewModel() {
 
     private val repository = SessionRepository()
 

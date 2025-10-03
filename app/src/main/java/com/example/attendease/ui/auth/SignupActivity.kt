@@ -25,13 +25,6 @@ class SignupActivity : AppCompatActivity() {
         binding = SignupScreenBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        enableEdgeToEdge()
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.signup_main)) { v, insets ->
-            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
-            insets
-        }
-
         repository = AuthRepository(FirebaseAuth.getInstance())
 
         // Sign up button

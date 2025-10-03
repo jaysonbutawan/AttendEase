@@ -49,24 +49,24 @@ dependencies {
     // Core
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
-    implementation("androidx.cardview:cardview:1.0.0")
-    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.9.4")
+    implementation(libs.androidx.cardview)
+    implementation(libs.androidx.lifecycle.viewmodel.ktx)
 
     // UI
     implementation(libs.material)
     implementation(libs.androidx.activity)
     implementation(libs.androidx.constraintlayout)
-    implementation("com.google.android.material:material:1.13.0")
-    implementation("androidx.credentials:credentials:1.5.0") // Credential Manager
-    implementation("androidx.credentials:credentials-play-services-auth:1.5.0")
+    implementation(libs.material)
+    implementation(libs.androidx.credentials)
+    implementation(libs.androidx.credentials.play.services.auth)
 
     // Firebase
-    implementation (platform("com.google.firebase:firebase-bom:34.3.0"))
+    implementation (platform(libs.firebase.bom))
     implementation(libs.firebase.auth.ktx)
     implementation(libs.firebase.database)
 
     // Google Sign-In
-    implementation("com.google.android.gms:play-services-auth:21.4.0")
+    implementation(libs.play.services.auth)
     implementation(libs.androidx.activity.compose)
     implementation(libs.googleid)
     implementation(libs.androidx.legacy.support.v4)
@@ -78,6 +78,10 @@ dependencies {
     androidTestImplementation(libs.androidx.espresso.core)
 
     //qrcode scanner
-    implementation("com.journeyapps:zxing-android-embedded:4.3.0")
-    implementation ("com.google.zxing:core:3.5.2")
+    implementation(libs.zxing.android.embedded)
+    implementation (libs.core)
+
+    //Circle imageview
+    implementation(libs.circleimageview)
+    implementation(libs.glide)
 }

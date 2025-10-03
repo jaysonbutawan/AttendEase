@@ -1,14 +1,14 @@
 package com.example.attendease.data.model
 
 data class ClassSession(
-    val sessionId: String? = null,
+    var sessionId: String? = null,
     var roomId: String? = null,
     var roomName: String? = null,
-    val subject: String? = null,
-    val date: String? = null,
-    val startTime: String? = null,
-    val endTime: String? = null,
-    val allowanceTime: Int? = null,
-    val teacherId: String? = null,
-    val qrCode: String? = null,
+    var subject: String? = null,
+    var date: String? = null,
+    var startTime: String? = null,
+    var endTime: String? = null,
+    var allowanceTime: Int? = null,
+    var teacherId: String? = null,
+    var qrCode: String? = null,
 )

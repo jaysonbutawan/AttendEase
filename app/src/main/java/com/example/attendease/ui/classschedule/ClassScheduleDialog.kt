@@ -16,7 +16,7 @@ import com.example.attendease.data.model.ClassSession
 import com.example.attendease.data.model.Room
 import com.example.attendease.data.repositories.SessionRepository
 import com.example.attendease.databinding.ClassSchduleScreenBinding
-import com.example.attendease.ui.roomlist.RoomListViewModel
+import com.example.attendease.ui.classschedule.viewModel.RoomListViewModel
 import com.google.firebase.auth.FirebaseAuth
 import java.util.Calendar
 import androidx.core.graphics.drawable.toDrawable
