@@ -12,33 +12,33 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.AttendEase.NoActionBar">
         <activity
-            android:name=".ui.session.ui.SessionActivity"
+            android:name=".teacher.ui.session.ui.SessionActivity"
             android:exported="false" />
         <activity
-            android:name=".ui.profile.ProfileActivity"
+            android:name=".teacher.ui.profile.ProfileActivity"
             android:exported="false" />
         <activity
-            android:name=".ui.classschedule.ClassScheduleDialog"
+            android:name=".teacher.ui.classschedule.ClassScheduleDialog"
             android:exported="false"
             android:theme="@style/Theme.AppCompat.Dialog"
             tools:ignore="Instantiatable" />
         <activity
-            android:name=".ui.dashboard.AttendanceReportActivity"
+            android:name=".teacher.ui.dashboard.AttendanceReportActivity"
             android:exported="false" />
         <activity
-            android:name=".ui.session.ui.ManageSessionActivity"
+            android:name=".teacher.ui.session.ui.ManageSessionActivity"
             android:exported="false" />
         <activity
-            android:name=".ui.dashboard.MainNavigationActivity"
+            android:name=".teacher.ui.dashboard.MainNavigationActivity"
             android:exported="false" />
         <activity
-            android:name=".ui.auth.SignupActivity"
+            android:name=".teacher.ui.auth.SignupActivity"
             android:exported="false" />
         <activity
-            android:name=".ui.auth.LoginActivity"
+            android:name=".teacher.ui.auth.LoginActivity"
             android:exported="false" />
         <activity
-            android:name=".ui.splash.SplashActivity"
+            android:name=".teacher.ui.splash.SplashActivity"
             android:exported="true"
             android:noHistory="true">
             <intent-filter>
@@ -48,7 +48,7 @@
             </intent-filter>
         </activity>
         <activity
-            android:name=".ui.onboarding.OnboardingActivity"
+            android:name=".teacher.ui.onboarding.OnboardingActivity"
             android:exported="true"
             android:screenOrientation="portrait" />
     </application>

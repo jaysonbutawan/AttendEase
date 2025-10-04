@@ -11,7 +11,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:background="@drawable/bglogin"
-        tools:context=".ui.auth.SignupActivity">
+        tools:context=".teacher.ui.auth.SignupActivity">
 
         <ImageView
             android:id="@+id/ic_login"
