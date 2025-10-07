@@ -1,14 +1,17 @@
 package com.example.attendease.teacher.ui.dashboard
 
 import android.content.Intent
+import android.graphics.Color
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
+import androidx.cardview.widget.CardView
 import com.bumptech.glide.Glide
 import com.example.attendease.R
 import com.example.attendease.databinding.MainNavScreenBinding
 import com.example.attendease.teacher.ui.profile.ProfileActivity
 import com.example.attendease.teacher.ui.session.ui.ManageSessionActivity
 import com.google.firebase.auth.FirebaseAuth
+import androidx.core.graphics.toColorInt
 
 class MainNavigationActivity : AppCompatActivity() {
 
@@ -38,22 +41,57 @@ class MainNavigationActivity : AppCompatActivity() {
         }
     }
 
-    private fun setupClickListeners(name: String?, email: String?, imageUrl: String?) = with(binding) {
-        cvManageClasses.setOnClickListener {
-            startActivity(Intent(this@MainNavigationActivity, ManageSessionActivity::class.java))
-        }
+    private fun setupClickListeners(name: String?, email: String?, imageUrl: String?) =
+        with(binding) {
 
-        cvAttendanceReport.setOnClickListener {
-            startActivity(Intent(this@MainNavigationActivity, AttendanceReportActivity::class.java))
-        }
-
-        profileImage.setOnClickListener {
-            val intent = Intent(this@MainNavigationActivity, ProfileActivity::class.java).apply {
-                putExtra("name", name)
-                putExtra("email", email)
-                putExtra("image", imageUrl)
+            setupCardToggle(cvManageClasses) {
+                startActivity(
+                    Intent(
+                        this@MainNavigationActivity,
+                        ManageSessionActivity::class.java
+                    )
+                )
             }
-            startActivity(intent)
+
+            setupCardToggle(cvAttendanceReport) {
+                startActivity(
+                    Intent(
+                        this@MainNavigationActivity,
+                        AttendanceReportActivity::class.java
+                    )
+                )
+            }
+
+            profileImage.setOnClickListener {
+                val intent =
+                    Intent(this@MainNavigationActivity, ProfileActivity::class.java).apply {
+                        putExtra("name", name)
+                        putExtra("email", email)
+                        putExtra("image", imageUrl)
+                    }
+                startActivity(intent)
+            }
+        }
+
+    private fun setupCardToggle(
+        cardView: CardView,
+        selectedColorHex: String = "#6E8CFB",
+        onClick: () -> Unit
+    ) {
+        cardView.setOnClickListener {
+            val selectedColor = selectedColorHex.toColorInt()
+            val normalColor = Color.WHITE
+
+            cardView.setCardBackgroundColor(selectedColor)
+
+            cardView.postDelayed({
+                cardView.setCardBackgroundColor(normalColor)
+            }, 200)
+
+            // Run click action
+            onClick()
         }
     }
 }
+
+

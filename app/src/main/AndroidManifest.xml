@@ -32,11 +32,11 @@
             android:name=".teacher.ui.dashboard.MainNavigationActivity"
             android:exported="false" />
         <activity
-            android:name=".teacher.ui.auth.SignupActivity"
-            android:exported="false" />
+            android:name=".common.ui.auth.SignupActivity"
+            android:exported="true" />
         <activity
-            android:name=".teacher.ui.auth.LoginActivity"
-            android:exported="false" />
+            android:name=".common.ui.auth.LoginActivity"
+            android:exported="true" />
         <activity
             android:name=".teacher.ui.splash.SplashActivity"
             android:exported="true"

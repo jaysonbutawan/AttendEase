@@ -1,11 +1,11 @@
-package com.example.attendease.teacher.ui.auth
+package com.example.attendease.common.ui.auth
 
 import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
-import com.example.attendease.teacher.data.repositories.AuthRepository
+import com.example.attendease.common.firebase.AuthRepository
 import com.example.attendease.databinding.LoginScreenBinding
 import com.example.attendease.teacher.ui.dashboard.MainNavigationActivity
 import com.google.firebase.auth.FirebaseAuth

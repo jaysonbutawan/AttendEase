@@ -16,28 +16,16 @@
     android:id="@+id/mainNavigation">
 
 
-    <TextView
-        android:id="@+id/header"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:fontFamily="@font/archivoblack"
-        android:text="@string/attend_ease"
-        android:textColor="@color/white"
-        android:textSize="25sp"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
-
     <de.hdodenhof.circleimageview.CircleImageView
         android:id="@+id/profileImage"
-        android:layout_width="80dp"
-        android:layout_height="80dp"
+        android:layout_width="70dp"
+        android:layout_height="70dp"
+        android:layout_marginStart="12dp"
+        android:layout_marginTop="16dp"
         android:contentDescription="@string/_reports"
         android:src="@drawable/default_avatar"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/header"
-        android:layout_marginTop="16dp"
-        android:layout_marginStart="16dp"/>
+        app:layout_constraintTop_toTopOf="parent" />
 
     <TextView
         android:id="@+id/tvUserName"
@@ -62,10 +50,10 @@
         android:text="@string/teacher"
         android:textColor="@color/blue"
         android:textSize="28sp"
-        app:layout_constraintTop_toBottomOf="@id/header"
-        app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginTop="150dp"/>
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/profileImage"
+        tools:layout_editor_absoluteY="202dp" />
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -123,7 +111,6 @@
 
         </androidx.cardview.widget.CardView>
 
-        <!-- Employee List Card -->
         <androidx.cardview.widget.CardView
             android:id="@+id/cvAttendanceReport"
             android:layout_width="0dp"
@@ -132,6 +119,7 @@
             android:layout_weight="1"
             android:clickable="true"
             android:focusable="true"
+            android:foreground="?attr/selectableItemBackground"
             app:cardBackgroundColor="@color/white"
             app:cardCornerRadius="12dp"
             app:cardElevation="6dp">
@@ -151,7 +139,7 @@
                     android:layout_marginBottom="10dp"/>
 
                 <TextView
-                    android:layout_width="wrap_content"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:gravity="center"
                     android:padding="8dp"

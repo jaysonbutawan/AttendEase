@@ -1,4 +1,4 @@
-package com.example.attendease.teacher.data.repositories
+package com.example.attendease.common.firebase
 
 import android.content.Context
 import android.content.Intent

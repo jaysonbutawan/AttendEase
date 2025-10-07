@@ -5,7 +5,7 @@
     android:layout_height="match_parent"
     xmlns:tools="http://schemas.android.com/tools"
     android:padding="24dp"
-    android:background="@drawable/bglogin"
+    android:background="@drawable/gradient_background"
     tools:context=".teacher.ui.onboarding.OnboardingActivity"
     android:id="@+id/onboardingOptionLayout">
 
@@ -43,12 +43,12 @@
         android:layout_marginHorizontal="24dp" />
 
     <!-- Login Button -->
-    <Button
+    <TextView
         android:id="@+id/loginButton"
-        style="@style/RoundedButton"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:text="@string/log_in"
+        android:background="@drawable/rounded_button"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/descriptionText"

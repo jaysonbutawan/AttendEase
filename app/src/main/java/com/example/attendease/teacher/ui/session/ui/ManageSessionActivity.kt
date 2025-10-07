@@ -11,7 +11,6 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.recyclerview.widget.LinearLayoutManager
-import com.example.attendease.R
 import com.example.attendease.teacher.ui.session.adapter.SessionAdapter
 import com.example.attendease.databinding.ManageClassScreenBinding
 import com.example.attendease.teacher.ui.classschedule.ClassScheduleDialog
@@ -32,14 +31,6 @@ class ManageSessionActivity : AppCompatActivity() {
         binding = ManageClassScreenBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        enableEdgeToEdge()
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
-            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
-            insets
-        }
-
-        // RecyclerView setup
         adapter = SessionAdapter(emptyList()) { session ->
             openSessionActivity(session.roomId, session.sessionId)
         }

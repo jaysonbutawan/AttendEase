@@ -5,9 +5,9 @@ import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import com.bumptech.glide.Glide
 import com.example.attendease.R
-import com.example.attendease.teacher.data.repositories.AuthRepository
+import com.example.attendease.common.firebase.AuthRepository
 import com.example.attendease.databinding.ProfileScreenBinding
-import com.example.attendease.teacher.ui.auth.LoginActivity
+import com.example.attendease.common.ui.auth.LoginActivity
 import com.google.firebase.auth.FirebaseAuth
 
 class ProfileActivity : AppCompatActivity() {
@@ -33,15 +33,19 @@ class ProfileActivity : AppCompatActivity() {
             } else {
                 profileImage.setImageResource(R.drawable.default_avatar)
             }
-
             logoutButton.setOnClickListener {
-                authRepository.signOut()
-                val intent = Intent(this@ProfileActivity, LoginActivity::class.java).apply {
-                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                try {
+                    authRepository.signOut()
+                    val intent = Intent(this@ProfileActivity, LoginActivity::class.java).apply {
+                        flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                    }
+                    startActivity(intent)
+                    finish()
+                } catch (e: Exception) {
+                    e.printStackTrace()
                 }
-                startActivity(intent)
-                finish()
             }
+
         }
     }
 }
