@@ -163,7 +163,7 @@
                 android:layout_marginBottom="8dp"
                 android:text="Institution Email"
                 android:textColor="@android:color/black"
-                android:textSize="16sp"
+                android:textSize="12sp"
                 android:textStyle="bold" />
 
             <EditText
@@ -186,7 +186,7 @@
                 android:layout_marginBottom="8dp"
                 android:text="Password"
                 android:textColor="@android:color/black"
-                android:textSize="16sp"
+                android:textSize="12sp"
                 android:textStyle="bold" />
 
             <EditText
@@ -209,7 +209,9 @@
                 android:layout_height="wrap_content"
                 android:layout_gravity="end"
                 android:layout_marginTop="8dp"
+                android:visibility="gone"
                 android:text="@string/forgot_password"
+                android:textSize="12sp"
                 android:textColor="@android:color/holo_blue_dark" />
 
             <!-- Login Button -->
@@ -220,10 +222,10 @@
                 android:layout_marginTop="24dp"
                 android:background="@drawable/rounded_button"
                 android:gravity="center"
-                android:padding="12dp"
+                android:padding="8dp"
                 android:text="@string/log_in"
                 android:textColor="@android:color/white"
-                android:textSize="20sp" />
+                android:textSize="16sp" />
             <!-- Divider -->
             <LinearLayout
                 android:layout_width="match_parent"
@@ -236,7 +238,7 @@
                     android:layout_width="0dp"
                     android:layout_height="1dp"
                     android:layout_weight="1"
-                    android:background="@color/blue" />
+                    android:background="@color/gray_divider" />
 
                 <TextView
                     android:layout_width="wrap_content"
@@ -250,7 +252,7 @@
                     android:layout_width="0dp"
                     android:layout_height="1dp"
                     android:layout_weight="1"
-                    android:background="@color/blue" />
+                    android:background="@color/gray_divider" />
             </LinearLayout>
 
             <!-- Google Button -->

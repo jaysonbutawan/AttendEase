@@ -5,7 +5,6 @@ import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import com.example.attendease.databinding.SplashScreenBinding
 import com.example.attendease.common.ui.auth.LoginActivity
-import com.example.attendease.common.ui.auth.SignupActivity
 
 class OnboardingActivity : AppCompatActivity() {
     private lateinit var binding: SplashScreenBinding
@@ -18,8 +17,8 @@ class OnboardingActivity : AppCompatActivity() {
         binding.loginButton.setOnClickListener {
             startActivity(Intent(this, LoginActivity::class.java))
         }
-        binding.createAccountButton.setOnClickListener {
-            startActivity(Intent(this, SignupActivity::class.java))
-        }
+//        binding.createAccountButton.setOnClickListener {
+//            startActivity(Intent(this, SignupActivity::class.java))
+//        }
     }
 }
