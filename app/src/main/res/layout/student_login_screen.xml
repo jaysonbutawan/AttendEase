@@ -1,0 +1,303 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true"
+    android:background="@drawable/gradient_background"
+    tools:context=".common.ui.auth.StudentLoginActivity">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/main"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="24dp"
+        tools:context=".common.ui.auth.StudentLoginActivity">
+
+        <ImageView
+            android:id="@+id/ic_login"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_marginTop="30dp"
+            android:contentDescription="@string/_reports"
+            android:background="@drawable/circle_background_transparent"
+            android:src="@drawable/book"
+            app:tint="@color/white"
+            app:civ_border_width="6dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="0.328"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="40dp"
+            android:layout_marginTop="28dp"
+            android:padding="10dp"
+            android:background="@drawable/student_rounded_button"
+            android:drawableStart="@drawable/student"
+            android:drawablePadding="8dp"
+            android:text="Student"
+            android:gravity="center_vertical"
+            android:textColor="@android:color/white"
+            android:textSize="14sp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="0.230"
+            app:layout_constraintStart_toEndOf="@id/ic_login"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <TextView
+            android:id="@+id/title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/attend_ease"
+            android:textColor="@android:color/white"
+            android:textSize="30sp"
+            android:textStyle="bold"
+            android:layout_marginTop="30dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/ic_login"/>
+
+        <TextView
+            android:id="@+id/titleText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Student Portal"
+            android:textColor="@android:color/white"
+            android:textSize="12sp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/title" />
+
+        <TextView
+            android:id="@+id/tvChangeRole"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Change Role"
+            android:drawableStart="@drawable/left_arrow"
+            android:drawablePadding="10dp"
+            android:paddingHorizontal="10dp"
+            android:paddingVertical="6dp"
+            android:textSize="12sp"
+            android:gravity="center_vertical"
+            android:textColor="@color/white"
+            android:clickable="true"
+            android:focusable="true"
+            android:textStyle="bold"
+            android:layout_marginTop="10dp"
+            android:background="@drawable/change_role_selector"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/titleText" />
+
+        <androidx.cardview.widget.CardView
+            android:id="@+id/segmentedControlContainer"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:cardCornerRadius="24dp"
+            app:cardElevation="0dp"
+            app:cardBackgroundColor="@android:color/transparent"
+            app:layout_constraintTop_toTopOf="@+id/tvChangeRole"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            android:layout_marginTop="50dp">
+
+            <FrameLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="@drawable/gradient_background">
+
+                <RadioGroup
+                    android:id="@+id/toggle_group"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:padding="4dp">
+
+                    <RadioButton
+                        android:id="@+id/radio_sign_in"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Sign In"
+                        android:paddingStart="24dp"
+                        android:paddingEnd="24dp"
+                        android:checked="true"
+                        android:textSize="11sp"
+                        android:textStyle="bold"
+                        android:button="@null"
+                        android:gravity="center"
+                        android:background="@drawable/toggle_button_selector"
+                        android:textColor="@color/black"
+                        android:layout_marginEnd="4dp"/>
+
+                    <RadioButton
+                        android:id="@+id/radio_sign_up"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Sign Up"
+                        android:paddingStart="24dp"
+                        android:paddingEnd="24dp"
+                        android:textSize="11sp"
+                        android:button="@null"
+                        android:gravity="center"
+                        android:background="@drawable/toggle_button_selector"
+                        android:textColor="@color/black"/>
+
+                </RadioGroup>
+            </FrameLayout>
+        </androidx.cardview.widget.CardView>
+
+        <androidx.cardview.widget.CardView
+            android:id="@+id/credentialView"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="8dp"
+            app:layout_constraintTop_toBottomOf="@+id/segmentedControlContainer"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@color/white"
+                android:orientation="vertical"
+                android:padding="20dp">
+
+                <!-- Title -->
+                <TextView
+                    android:id="@+id/cardTitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:layout_marginBottom="20dp"
+                    android:text="Sign in to your teacher account"
+                    android:textColor="@android:color/black"
+                    android:textSize="20sp"
+                    android:textStyle="bold" />
+
+                <!-- Email -->
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="8dp"
+                    android:text="University Email"
+                    android:textColor="@android:color/black"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+
+                <EditText
+                    android:id="@+id/emailEditText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="20dp"
+                    android:background="@drawable/edit_text_background"
+                    android:drawableStart="@drawable/email"
+                    android:drawablePadding="8dp"
+                    android:hint="you.email@univertsity.edu"
+                    android:autofillHints="emailAddress"
+                    android:inputType="textEmailAddress"
+                    android:padding="12dp"
+                    android:textColor="@android:color/black"
+                    android:textSize="16sp" />
+
+                <!-- Password -->
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="8dp"
+                    android:text="Password"
+                    android:textColor="@android:color/black"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+
+                <EditText
+                    android:id="@+id/passwordEditText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/edit_text_background"
+                    android:drawableStart="@drawable/password"
+                    android:drawablePadding="8dp"
+                    android:hint="Enter your password"
+                    android:autofillHints="password"
+                    android:inputType="textPassword"
+                    android:padding="12dp"
+                    android:textColor="@android:color/black"
+                    android:textSize="16sp" />
+
+                <!-- Forgot Password -->
+                <TextView
+                    android:id="@+id/forgotPasswordText"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="end"
+                    android:layout_marginTop="8dp"
+                    android:visibility="gone"
+                    android:text="@string/forgot_password"
+                    android:textSize="12sp"
+                    android:textColor="@android:color/holo_blue_dark" />
+
+                <!-- Login Button -->
+                <TextView
+                    android:id="@+id/loginButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="24dp"
+                    android:background="@drawable/student_rounded_button"
+                    android:gravity="center"
+                    android:padding="8dp"
+                    android:text="@string/log_in"
+                    android:textColor="@android:color/white"
+                    android:textSize="16sp" />
+                <!-- Divider -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="24dp"
+                    android:gravity="center"
+                    android:orientation="horizontal">
+
+                    <View
+                        android:layout_width="0dp"
+                        android:layout_height="1dp"
+                        android:layout_weight="1"
+                        android:background="@color/gray_divider" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginHorizontal="8dp"
+                        android:text="@string/or_login_with"
+                        android:textColor="@android:color/black"
+                        android:textSize="14sp" />
+
+                    <View
+                        android:layout_width="0dp"
+                        android:layout_height="1dp"
+                        android:layout_weight="1"
+                        android:background="@color/gray_divider" />
+                </LinearLayout>
+
+                <!-- Google Button -->
+                <ImageButton
+                    android:id="@+id/googleButton"
+                    style="@style/RoundedButton.Outline"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:layout_marginTop="20dp"
+                    android:contentDescription="@string/sign_in_with_google"
+                    android:src="@drawable/google" />
+
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+
+
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+</ScrollView>

@@ -110,7 +110,7 @@
             android:textAllCaps="false"
             android:drawableEnd="@drawable/play"
             android:drawableTint="@color/white"
-            android:background="@drawable/rounded_button"
+            android:background="@drawable/teacher_rounded_button"
             android:textColor="@android:color/white"
        />
 

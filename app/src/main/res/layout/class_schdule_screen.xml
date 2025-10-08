@@ -45,6 +45,7 @@
             android:hint="Enter subject"
             android:background="@drawable/edit_text_background"
             android:padding="12dp"
+            android:autofillHints="subject"
             android:layout_marginBottom="16dp"
             android:inputType="textCapWords" />
 
@@ -81,8 +82,10 @@
             android:hint="Select a date"
             android:background="@drawable/edit_text_background"
             android:padding="12dp"
+            android:autofillHints="null"
+            android:inputType="date"
             android:layout_marginBottom="16dp"
-            android:focusable="false"
+            android:focusable="true"
             android:clickable="true" />
 
         <!-- Time Selection (unchanged) -->
@@ -116,6 +119,8 @@
                     android:hint="@string/select_start_time"
                     android:focusable="true"
                     android:clickable="true"
+                    android:inputType="time"
+                    android:autofillHints="time"
                     android:background="@drawable/edit_text_background"
                     android:padding="12dp"/>
             </LinearLayout>
@@ -141,7 +146,9 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:hint="@string/select_end_time"
+                    android:inputType="time"
                     android:focusable="true"
+                    android:autofillHints="date"
                     android:clickable="true"
                     android:background="@drawable/edit_text_background"
                     android:padding="12dp"/>
@@ -162,7 +169,7 @@
                 android:layout_weight="1"
                 android:text="@string/schedule_class"
                 android:textAllCaps="false"
-                android:background="@drawable/rounded_button"
+                android:background="@drawable/teacher_rounded_button"
                 android:textColor="#FFFFFF"
                 android:paddingVertical="12dp"
                 android:layout_marginStart="8dp" />

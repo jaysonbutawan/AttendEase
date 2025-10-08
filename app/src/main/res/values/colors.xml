@@ -28,7 +28,7 @@
     <color name="divider_color">#E0E0E0</color>
     <color name="error_color">#F44336</color>
     <color name="success_color">#4CAF50</color>
-    <color name="warning_color">#FF9800</color>
+    <color name="teacher">#e4007d</color>
 
     <!-- Dark Theme Colors (Optional) -->
     <color name="dark_background">#121212</color>

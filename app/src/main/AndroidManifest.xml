@@ -12,6 +12,12 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.AttendEase.NoActionBar">
         <activity
+            android:name=".student.ui.StudentDashboardActivity"
+            android:exported="false" />
+        <activity
+            android:name=".common.ui.auth.StudentLoginActivity"
+            android:exported="false" />
+        <activity
             android:name=".teacher.ui.session.ui.SessionActivity"
             android:exported="false" />
         <activity
@@ -38,7 +44,7 @@
             android:name=".common.ui.auth.LoginActivity"
             android:exported="true" />
         <activity
-            android:name=".teacher.ui.splash.SplashActivity"
+            android:name=".common.splash.SplashActivity"
             android:exported="true"
             android:noHistory="true">
             <intent-filter>
