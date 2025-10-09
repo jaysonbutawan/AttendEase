@@ -5,7 +5,7 @@ import android.content.Intent
 import android.os.Bundle
 import android.view.View
 import androidx.appcompat.app.AppCompatActivity
-import com.example.attendease.common.ui.auth.LoginActivity
+import com.example.attendease.common.ui.auth.TeacherLoginActivity
 import com.example.attendease.common.ui.auth.StudentLoginActivity
 import com.example.attendease.databinding.SplashScreenBinding
 import com.example.attendease.teacher.ui.dashboard.MainNavigationActivity
@@ -47,7 +47,7 @@ class SplashActivity : AppCompatActivity() {
                 // Navigate after a short delay, to let the user see the selection state change
                 // Note: Since you use 'finish()' immediately, the visual change might be too quick.
                 // However, following your logic, we navigate immediately.
-                startActivity(Intent(this, LoginActivity::class.java))
+                startActivity(Intent(this, TeacherLoginActivity::class.java))
                 finish()
             }
 

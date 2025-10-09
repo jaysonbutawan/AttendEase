@@ -247,7 +247,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="24dp"
-                    android:background="@drawable/student_rounded_button"
+                    android:background="@drawable/round_button_blue"
                     android:gravity="center"
                     android:padding="8dp"
                     android:text="@string/log_in"

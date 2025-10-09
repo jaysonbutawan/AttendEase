@@ -41,7 +41,7 @@
             android:name=".common.ui.auth.SignupActivity"
             android:exported="true" />
         <activity
-            android:name=".common.ui.auth.LoginActivity"
+            android:name=".common.ui.auth.TeacherLoginActivity"
             android:exported="true" />
         <activity
             android:name=".common.splash.SplashActivity"

@@ -16,7 +16,7 @@ import com.example.attendease.teacher.ui.dashboard.MainNavigationActivity
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
 
-class LoginActivity : AppCompatActivity() {
+class TeacherLoginActivity : AppCompatActivity() {
     private lateinit var binding: LoginScreenBinding
     private lateinit var repository: AuthRepository
     private enum class AuthState {  SIGN_IN, SIGN_UP
@@ -93,14 +93,14 @@ class LoginActivity : AppCompatActivity() {
 
     private fun signIn(email: String, password: String) {
         lifecycleScope.launch {
-            val result = repository.signInWithEmail(email, password)
+            val result = repository.signInWithEmail(email, password, "teacher")
             result.onSuccess {
-                Toast.makeText(this@LoginActivity, "Login Successful", Toast.LENGTH_SHORT).show()
-                startActivity(Intent(this@LoginActivity, MainNavigationActivity::class.java))
+                Toast.makeText(this@TeacherLoginActivity, "Login Successful", Toast.LENGTH_SHORT).show()
+                startActivity(Intent(this@TeacherLoginActivity, MainNavigationActivity::class.java))
                 finish()
             }.onFailure { e ->
                 Toast.makeText(
-                    this@LoginActivity,
+                    this@TeacherLoginActivity,
                     "Email login failed: ${e.message}",
                     Toast.LENGTH_LONG
                 ).show()
@@ -110,34 +110,43 @@ class LoginActivity : AppCompatActivity() {
 
     private fun signUp(email: String, password: String) {
         lifecycleScope.launch {
-            val result = repository.signUpWithEmail(email, password)
+            val result = repository.signUpWithEmail(email, password, "teacher")
             result.onSuccess {
-                Toast.makeText(this@LoginActivity, "Account created successfully. Please sign in.", Toast.LENGTH_LONG).show()
+                Toast.makeText(
+                    this@TeacherLoginActivity,
+                    "Account created successfully. Please sign in.",
+                    Toast.LENGTH_LONG
+                ).show()
                 binding.toggleGroup.check(R.id.radio_sign_in)
                 updateUIForState(AuthState.SIGN_IN)
                 binding.passwordEditText.text.clear()
             }.onFailure { e ->
-                Toast.makeText(this@LoginActivity, "Signup failed: ${e.message}", Toast.LENGTH_LONG).show()
+                Toast.makeText(
+                    this@TeacherLoginActivity,
+                    "Signup failed: ${e.message}",
+                    Toast.LENGTH_LONG
+                ).show()
             }
         }
     }
 
     private fun handleGoogleSignIn() {
         lifecycleScope.launch {
-            val result = repository.signInWithGoogle(this@LoginActivity)
+            val result = repository.signInWithGoogle(this@TeacherLoginActivity, "teacher")
             result.onSuccess {
-                Toast.makeText(this@LoginActivity, "Login Successful", Toast.LENGTH_SHORT).show()
-                startActivity(Intent(this@LoginActivity, MainNavigationActivity::class.java))
+                Toast.makeText(this@TeacherLoginActivity, "Login Successful", Toast.LENGTH_SHORT).show()
+                startActivity(Intent(this@TeacherLoginActivity, MainNavigationActivity::class.java))
                 finish()
             }.onFailure { e ->
                 Toast.makeText(
-                    this@LoginActivity,
+                    this@TeacherLoginActivity,
                     "Google login failed: ${e.message}",
                     Toast.LENGTH_LONG
                 ).show()
             }
         }
     }
+
     private fun toggleRole() {
        startActivity(Intent(this, SplashActivity::class.java))
     }

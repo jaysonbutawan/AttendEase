@@ -83,44 +83,59 @@ class StudentLoginActivity : AppCompatActivity() {
 
     private fun signIn(email: String, password: String) {
         lifecycleScope.launch {
-            val result = repository.signInWithEmail(email, password)
+            val result = repository.signInWithEmail(email, password, "student")
             result.onSuccess {
                 Toast.makeText(this@StudentLoginActivity, "Login Successful", Toast.LENGTH_SHORT).show()
                 startActivity(Intent(this@StudentLoginActivity, StudentDashboardActivity::class.java))
                 finish()
             }.onFailure { e ->
-                Toast.makeText(this@StudentLoginActivity, "Email login failed: ${e.message}", Toast.LENGTH_LONG).show()
+                Toast.makeText(
+                    this@StudentLoginActivity,
+                    "Email login failed: ${e.message}",
+                    Toast.LENGTH_LONG
+                ).show()
             }
         }
     }
 
     private fun signUp(email: String, password: String) {
         lifecycleScope.launch {
-            val result = repository.signUpWithEmail(email, password)
+            val result = repository.signUpWithEmail(email, password, "student")
             result.onSuccess {
-                Toast.makeText(this@StudentLoginActivity, "Account created successfully. Please sign in.", Toast.LENGTH_LONG).show()
+                Toast.makeText(
+                    this@StudentLoginActivity,
+                    "Account created successfully. Please sign in.",
+                    Toast.LENGTH_LONG
+                ).show()
                 binding.toggleGroup.check(R.id.radio_sign_in)
                 updateUIForState(AuthState.SIGN_IN)
                 binding.passwordEditText.text.clear()
             }.onFailure { e ->
-                Toast.makeText(this@StudentLoginActivity, "Signup failed: ${e.message}", Toast.LENGTH_LONG).show()
+                Toast.makeText(
+                    this@StudentLoginActivity,
+                    "Signup failed: ${e.message}",
+                    Toast.LENGTH_LONG
+                ).show()
             }
         }
     }
 
     private fun handleGoogleSignIn() {
         lifecycleScope.launch {
-            val result = repository.signInWithGoogle(this@StudentLoginActivity)
+            val result = repository.signInWithGoogle(this@StudentLoginActivity, "student")
             result.onSuccess {
                 Toast.makeText(this@StudentLoginActivity, "Login Successful", Toast.LENGTH_SHORT).show()
                 startActivity(Intent(this@StudentLoginActivity, StudentDashboardActivity::class.java))
                 finish()
             }.onFailure { e ->
-                Toast.makeText(this@StudentLoginActivity, "Google login failed: ${e.message}", Toast.LENGTH_LONG).show()
+                Toast.makeText(
+                    this@StudentLoginActivity,
+                    "Google login failed: ${e.message}",
+                    Toast.LENGTH_LONG
+                ).show()
             }
         }
     }
-
     private fun toggleRole() {
         startActivity(Intent(this, SplashActivity::class.java))
     }
