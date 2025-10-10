@@ -15,6 +15,7 @@
         android:layout_height="wrap_content"
         android:padding="16dp"
         android:elevation="4dp"
+        android:layout_marginTop="15dp"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
@@ -112,11 +113,56 @@
     </androidx.constraintlayout.widget.ConstraintLayout>
 
 
+    <!-- Live Class Card -->
+    <androidx.cardview.widget.CardView
+        android:id="@+id/onClassCard"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginTop="16dp"
+        app:cardCornerRadius="16dp"
+        app:cardElevation="8dp"
+        app:layout_constraintTop_toBottomOf="@id/topBarContainer"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/student_rounded_button"
+            android:padding="20dp">
+
+            <TextView
+                android:id="@+id/liveClassHeader"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:text="Software Engineering\nis live now in CS-305"
+                android:textColor="@color/white"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintEnd_toEndOf="parent" />
+
+            <Button
+                android:id="@+id/joinNowBtn"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:text="Join Now"
+                android:textColor="@color/blue"
+                android:backgroundTint="@color/white"
+                app:layout_constraintTop_toBottomOf="@id/liveClassHeader"
+                app:layout_constraintStart_toStartOf="parent" />
+        </androidx.constraintlayout.widget.ConstraintLayout>
+    </androidx.cardview.widget.CardView>
+
         <FrameLayout
             android:id="@+id/fragmentContainer"
             android:layout_width="match_parent"
             android:layout_height="0dp"
-            app:layout_constraintTop_toBottomOf="@id/topBarContainer"
+            app:layout_constraintTop_toBottomOf="@id/onClassCard"
             app:layout_constraintBottom_toTopOf="@id/bottomNavigationView"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent"/>

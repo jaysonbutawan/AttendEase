@@ -38,4 +38,17 @@
     <string name="present">Present</string>
     <string name="ricky_paran">Ricky Paran</string>
     <string name="welcome_back">Welcome Back!</string>
+
+
+    <string name="csv_requirements_list">
+        \u2022 Required columns: Subject, Room, Time, Instructor\n
+        \u2022 First row should contain column headers\n
+        \u2022 Each row represents one class
+    </string>
+
+    <string name="csv_example_code">
+        Subject,Room,Time,Instructor\n
+        Data Structures,CS-201,09:00 AM - 10:30 AM,Dr. Smith\n
+        Software Engineering,CS-305,11:00 AM - 12:30 PM,Prof. Johnson
+    </string>
 </resources>

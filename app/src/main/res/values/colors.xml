@@ -1,10 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="primary_green">#4CAF50</color>
-    <color name="primary_green_dark">#388E3C</color>
-    <color name="primary_green_light">#81C784</color>
-
-    <!-- Secondary Colors -->
     <color name="accent_teal">#26A69A</color>
     <color name="blue">#0046FF</color>
 
@@ -35,4 +30,14 @@
     <color name="dark_surface">#1E1E1E</color>
     <color name="white">#FFFCFB</color>
     <color name="dark_secondary_text">#B3B3B3</color>
+
+
+    <color name="blue_primary">#007BFF</color>
+    <color name="blue_primary_light">#B3D5FF</color>
+    <color name="purple_accent">#7D53EF</color>
+    <color name="dashed_blue">#D1D9F9</color>
+    <color name="purple_primary">#7D53EF</color>
+    <color name="green_badge">#28A745</color>
+    <color name="white_alpha_50">#80FFFFFF</color>
+    <color name="black_light">#333333</color>
 </resources>
