@@ -72,6 +72,7 @@ dependencies {
     implementation(libs.androidx.legacy.support.v4)
     implementation(libs.androidx.recyclerview)
     implementation(libs.firebase.storage.ktx)
+    implementation(libs.androidx.media3.common.ktx)
 
     // Testing
     testImplementation(libs.junit)

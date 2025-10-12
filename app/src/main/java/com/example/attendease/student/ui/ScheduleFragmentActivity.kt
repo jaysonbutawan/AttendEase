@@ -1,10 +1,12 @@
 package com.example.attendease.student.ui
 
+import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.provider.OpenableColumns
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -14,9 +16,10 @@ import androidx.lifecycle.lifecycleScope
 import com.example.attendease.databinding.FragmentScheduleScreenBinding
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.FirebaseDatabase
-import com.google.firebase.storage.FirebaseStorage
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+import java.io.BufferedReader
+import java.io.InputStreamReader
 
 class ScheduleFragmentActivity : Fragment() {
 
@@ -25,12 +28,12 @@ class ScheduleFragmentActivity : Fragment() {
     private var isCsvLoaded = false
 
     private val database = FirebaseDatabase.getInstance().reference
-    private val storage = FirebaseStorage.getInstance().reference
     private val currentUser = FirebaseAuth.getInstance().currentUser
-
     private var uploadedCsvUri: Uri? = null
 
-    // ✅ Modern file picker
+    private val TAG = "CSV_DEBUG"
+
+    // Modern File Picker
     private val openCsvFileLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
@@ -42,14 +45,12 @@ class ScheduleFragmentActivity : Fragment() {
                         uri, Intent.FLAG_GRANT_READ_URI_PERMISSION
                     )
                 } catch (e: SecurityException) {
-                    e.printStackTrace()
+                    Log.e(TAG, "URI permission error: ${e.message}", e)
                 }
 
                 uploadedCsvUri = uri
                 val fileName = getFileName(uri)
-
-                // ✅ Upload to Firebase
-                uploadCsvToFirebase(uri, fileName)
+                parseAndUploadCsv(uri, fileName)
             }
         }
     }
@@ -64,14 +65,15 @@ class ScheduleFragmentActivity : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        isCsvLoaded = false
-        updateUploadUiState(isCsvLoaded)
+        // ✅ Load previous cached CSV data (if available)
+        checkCachedCsvData()
 
         binding.dropArea.setOnClickListener { openFileManager() }
         binding.updateCsvButton.setOnClickListener { openFileManager() }
         binding.removeCsvButton.setOnClickListener { removeCsvData() }
     }
 
+    // File Picker
     private fun openFileManager() {
         val mimeTypes = arrayOf(
             "text/csv", "application/csv", "application/vnd.ms-excel",
@@ -88,44 +90,115 @@ class ScheduleFragmentActivity : Fragment() {
         openCsvFileLauncher.launch(intent)
     }
 
-    private fun uploadCsvToFirebase(uri: Uri, fileName: String) {
+    // ✅ Parse CSV and upload extracted columns to Firebase
+    @SuppressLint("SetTextI18n")
+    private fun parseAndUploadCsv(uri: Uri, fileName: String) {
         val userId = currentUser?.uid ?: return
+        val userRef = database.child("users").child(userId).child("schedule")
 
         lifecycleScope.launch {
-            binding.fileNameText.text = "Uploading..."
-
-            val csvRef = storage.child("csv_uploads/$userId/$fileName")
-
             try {
-                // Firebase SDK runs async, but we can await() using coroutines
-                csvRef.putFile(uri).await()
-                val downloadUrl = csvRef.downloadUrl.await()
+                binding.fileNameText.text = "Reading CSV..."
+                val inputStream = requireContext().contentResolver.openInputStream(uri)
+                val reader = BufferedReader(InputStreamReader(inputStream))
+                val lines = reader.readLines()
 
-                // Save to database (also async)
-                val userRef = database.child("users").child(userId)
-                userRef.child("csvFileName").setValue(fileName).await()
-                userRef.child("csvFileUrl").setValue(downloadUrl.toString()).await()
+                Log.d(TAG, "Total CSV Lines: ${lines.size}")
+                if (lines.isEmpty()) {
+                    binding.fileNameText.text = "Error: Empty CSV"
+                    Log.e(TAG, "CSV file is empty")
+                    return@launch
+                }
 
+                val scheduleList = mutableListOf<Map<String, String>>()
+
+                for (i in 1 until lines.size) { // Skip header
+                    val columns = lines[i].split(",")
+                    Log.d(TAG, "Line $i -> ${columns.joinToString()}")
+
+                    if (columns.size >= 4) {
+                        val scheduleItem = mapOf(
+                            "subject" to columns[0].trim(),
+                            "room" to columns[1].trim(),
+                            "time" to columns[2].trim(),
+                            "instructor" to columns[3].trim()
+                        )
+                        scheduleList.add(scheduleItem)
+                    } else {
+                        Log.w(TAG, "Skipping invalid row at line $i: ${lines[i]}")
+                    }
+                }
+
+                if (scheduleList.isEmpty()) {
+                    binding.fileNameText.text = "Error: No valid rows found"
+                    Log.e(TAG, "Parsed list is empty.")
+                    return@launch
+                }
+
+                // Upload parsed data to Firebase
+                userRef.setValue(scheduleList).await()
+                Log.d(TAG, "Successfully uploaded ${scheduleList.size} rows to Firebase")
+
+                // Cache CSV content locally for persistence
+                cacheCsvData(fileName, scheduleList)
+
+                // Update UI
                 saveCsvFileName(fileName)
                 isCsvLoaded = true
                 updateUploadUiState(true)
+                binding.fileNameText.text = "Uploaded: $fileName"
 
             } catch (e: Exception) {
-                binding.fileNameText.text = "Upload failed: ${e.message}"
+                Log.e(TAG, "Error parsing/uploading CSV: ${e.message}", e)
+                binding.fileNameText.text = "Error: ${e.message}"
             }
         }
     }
 
+    // ✅ Local cache so user won’t lose CSV after logout/restart
+    private fun cacheCsvData(fileName: String, data: List<Map<String, String>>) {
+        val prefs = requireContext().getSharedPreferences("csv_cache", Activity.MODE_PRIVATE)
+        val dataString = data.joinToString(";") {
+            "${it["subject"]},${it["room"]},${it["time"]},${it["instructor"]}"
+        }
+        prefs.edit()
+            .putString("csvFileName", fileName)
+            .putString("csvData", dataString)
+            .apply()
+        Log.d(TAG, "Cached CSV data locally: $fileName")
+    }
+
+    // ✅ Check cache when opening app again
+    private fun checkCachedCsvData() {
+        val prefs = requireContext().getSharedPreferences("csv_cache", Activity.MODE_PRIVATE)
+        val fileName = prefs.getString("csvFileName", null)
+        val dataString = prefs.getString("csvData", null)
+
+        if (fileName != null && dataString != null) {
+            isCsvLoaded = true
+            updateUploadUiState(true)
+            binding.fileNameText.text = "Cached: $fileName"
+            Log.d(TAG, "Restored cached CSV: $fileName")
+        } else {
+            Log.d(TAG, "No cached CSV found.")
+            updateUploadUiState(false)
+        }
+    }
 
     private fun removeCsvData() {
         val userId = currentUser?.uid ?: return
         val userRef = database.child("users").child(userId)
 
+        userRef.child("schedule").removeValue()
         userRef.child("csvFileName").removeValue()
-        userRef.child("csvFileUrl").removeValue()
+
+        // Clear local cache too
+        requireContext().getSharedPreferences("csv_cache", Activity.MODE_PRIVATE)
+            .edit().clear().apply()
 
         isCsvLoaded = false
         updateUploadUiState(false)
+        Log.d(TAG, "CSV data removed from Firebase and cache")
     }
 
     private fun updateUploadUiState(isLoaded: Boolean) {
