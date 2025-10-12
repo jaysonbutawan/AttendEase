@@ -25,6 +25,7 @@ legacySupportV4 = "1.0.0"
 playServicesAuth = "21.4.0"
 recyclerview = "1.4.0"
 zxingAndroidEmbedded = "4.3.0"
+firebaseStorageKtx = "22.0.1"
 
 [libraries]
 androidx-cardview = { module = "androidx.cardview:cardview", version.ref = "cardview" }
@@ -51,6 +52,7 @@ androidx-legacy-support-v4 = { group = "androidx.legacy", name = "legacy-support
 androidx-recyclerview = { group = "androidx.recyclerview", name = "recyclerview", version.ref = "recyclerview" }
 play-services-auth = { module = "com.google.android.gms:play-services-auth", version.ref = "playServicesAuth" }
 zxing-android-embedded = { module = "com.journeyapps:zxing-android-embedded", version.ref = "zxingAndroidEmbedded" }
+firebase-storage-ktx = { group = "com.google.firebase", name = "firebase-storage-ktx", version.ref = "firebaseStorageKtx" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

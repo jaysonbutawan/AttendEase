@@ -23,10 +23,32 @@ class MainNavigationActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         val user = FirebaseAuth.getInstance().currentUser
+        val userId = user?.uid ?: return
 
-        setupUserInfo(user?.displayName, user?.email, user?.photoUrl?.toString())
-        setupClickListeners(user?.displayName, user?.email, user?.photoUrl?.toString())
+        val databaseRef = com.google.firebase.database.FirebaseDatabase.getInstance()
+            .getReference("users").child(userId)
+
+        // ✅ Real-time listener for user info
+        databaseRef.addValueEventListener(object : com.google.firebase.database.ValueEventListener {
+            override fun onDataChange(snapshot: com.google.firebase.database.DataSnapshot) {
+                val fullName = snapshot.child("fullname").getValue(String::class.java)
+                val email = snapshot.child("email").getValue(String::class.java)
+                val imageUrl = user.photoUrl?.toString()
+
+                val displayName = fullName ?: user.displayName
+
+                // Update UI immediately when data changes
+                setupUserInfo(displayName, email, imageUrl)
+                setupClickListeners(displayName, email, imageUrl)
+            }
+
+            override fun onCancelled(error: com.google.firebase.database.DatabaseError) {
+                // Handle database error
+            }
+        })
     }
+
+
 
     private fun setupUserInfo(name: String?, email: String?, imageUrl: String?) = with(binding) {
         tvUserName.text = name

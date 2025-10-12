@@ -63,6 +63,7 @@ dependencies {
     implementation (platform(libs.firebase.bom))
     implementation(libs.firebase.auth.ktx)
     implementation(libs.firebase.database)
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3")
 
     // Google Sign-In
     implementation(libs.play.services.auth)
@@ -70,6 +71,7 @@ dependencies {
     implementation(libs.googleid)
     implementation(libs.androidx.legacy.support.v4)
     implementation(libs.androidx.recyclerview)
+    implementation(libs.firebase.storage.ktx)
 
     // Testing
     testImplementation(libs.junit)

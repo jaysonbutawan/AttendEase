@@ -145,4 +145,18 @@ class AuthRepository(
         firebaseAuth.signOut()
     }
 
+    suspend fun updateUserFullName(newName: String): Result<Unit> {
+        return try {
+            val userId = firebaseAuth.currentUser?.uid ?: return Result.failure(Exception("User not logged in"))
+            val dbRef = database.child("users").child(userId)
+
+            dbRef.child("fullname").setValue(newName).await()
+
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+
 }
