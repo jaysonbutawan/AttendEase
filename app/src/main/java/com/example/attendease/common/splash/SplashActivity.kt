@@ -5,19 +5,23 @@ import android.content.Intent
 import android.os.Bundle
 import android.view.View
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.lifecycleScope // Required for Coroutines in Activity
 import com.example.attendease.common.ui.auth.TeacherLoginActivity
 import com.example.attendease.common.ui.auth.StudentLoginActivity
 import com.example.attendease.databinding.SplashScreenBinding
-import com.example.attendease.teacher.ui.dashboard.MainNavigationActivity
+import com.example.attendease.student.ui.StudentDashboardActivity
+import com.example.attendease.teacher.ui.dashboard.MainNavigationActivity // Teacher Dashboard
 import com.google.firebase.auth.FirebaseAuth
-// Import MaterialCardView if using the Material components for the stroke (recommended)
+import com.google.firebase.database.FirebaseDatabase // Required to read role
 import com.google.android.material.card.MaterialCardView
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 
 @SuppressLint("CustomSplashScreen")
 class SplashActivity : AppCompatActivity() {
     private lateinit var binding: SplashScreenBinding
+    private val database = FirebaseDatabase.getInstance().reference
 
-    // Enum to clearly define the roles
     private enum class Role {
         STUDENT, TEACHER
     }
@@ -30,61 +34,74 @@ class SplashActivity : AppCompatActivity() {
         val user = FirebaseAuth.getInstance().currentUser
 
         if (user != null) {
-            // User already logged in → go to dashboard
-            startActivity(Intent(this, MainNavigationActivity::class.java))
-            finish()
+            // User already logged in → Check Role for secure routing
+            checkUserRoleAndNavigate(user.uid)
         } else {
-            // --- User not logged in → show onboarding options ---
+            // --- User not logged in → show role selection options ---
+            setupRoleSelection()
+        }
+    }
 
-            // 1. Set initial state (both unselected)
-            updateRoleSelection(null)
+    /**
+     * Fetches the user's role from Firebase and routes them to the correct dashboard.
+     */
+    private fun checkUserRoleAndNavigate(userId: String) {
+        // Use a coroutine for the asynchronous Firebase read
+        lifecycleScope.launch {
+            try {
+                // Read the 'role' field under the user's ID
+                val snapshot = database.child("users").child(userId).child("role").get().await()
+                val role = snapshot.getValue(String::class.java)
 
-            // 2. Set up Teacher Card click listener
-            binding.teacherCardView.setOnClickListener {
-                // Apply selection visuals first
-                updateRoleSelection(Role.TEACHER)
-
-                // Navigate after a short delay, to let the user see the selection state change
-                // Note: Since you use 'finish()' immediately, the visual change might be too quick.
-                // However, following your logic, we navigate immediately.
-                startActivity(Intent(this, TeacherLoginActivity::class.java))
-                finish()
+                if (role.equals("teacher", ignoreCase = true)) {
+                    startActivity(Intent(this@SplashActivity, MainNavigationActivity::class.java))
+                } else if (role.equals("student", ignoreCase = true)) {
+                    startActivity(Intent(this@SplashActivity, StudentDashboardActivity::class.java))
+                } else {
+                    // Fallback if role is missing or invalid
+                    FirebaseAuth.getInstance().signOut()
+                    setupRoleSelection()
+                }
+            } catch (e: Exception) {
+                // Handle network error, database error, etc.
+                FirebaseAuth.getInstance().signOut()
+                setupRoleSelection()
             }
+            finish()
+        }
+    }
 
-            // 3. Set up Student Card click listener
-            binding.studentCardView.setOnClickListener {
-                // Apply selection visuals first
-                updateRoleSelection(Role.STUDENT)
+    /**
+     * Sets up the role selection UI and listeners.
+     */
+    private fun setupRoleSelection() {
+        binding.onboardingOptionLayout.visibility = View.VISIBLE
+        updateRoleSelection(null)
 
-                // Navigate immediately
-                startActivity(Intent(this, StudentLoginActivity::class.java))
-                finish()
-            }
+        binding.teacherCardView.setOnClickListener {
+            updateRoleSelection(Role.TEACHER)
+            startActivity(Intent(this, TeacherLoginActivity::class.java))
+            finish()
+        }
+
+        binding.studentCardView.setOnClickListener {
+            updateRoleSelection(Role.STUDENT)
+            startActivity(Intent(this, StudentLoginActivity::class.java))
+            finish()
         }
     }
 
     /**
      * Updates the UI state of the cards (border color and 'Select' text visibility).
-     * This relies on the CardViews being MaterialCardViews with a stroke selector defined in XML.
-     * * @param role The role that was just selected (STUDENT or TEACHER), or null to clear selection.
      */
     private fun updateRoleSelection(role: Role?) {
         val isStudentSelected = role == Role.STUDENT
         val isTeacherSelected = role == Role.TEACHER
 
-        // --- Student Card Update ---
-        // 1. Set the 'selected' state on the CardView (triggers the stroke selector defined in res/color/card_stroke_selector.xml)
         (binding.studentCardView as? MaterialCardView)?.isSelected = isStudentSelected
-
-        // 2. Control 'Select' badge visibility
         binding.studentSelect.visibility = if (isStudentSelected) View.VISIBLE else View.GONE
 
-
-        // --- Teacher Card Update ---
-        // 1. Set the 'selected' state on the CardView (triggers the stroke selector)
         (binding.teacherCardView as? MaterialCardView)?.isSelected = isTeacherSelected
-
-        // 2. Control 'Select' badge visibility
         binding.teacherSelect.visibility = if (isTeacherSelected) View.VISIBLE else View.GONE
     }
 }

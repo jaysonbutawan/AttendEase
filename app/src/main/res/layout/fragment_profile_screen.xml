@@ -8,8 +8,13 @@
     tools:context=".student.ui.ProfileFragmentActivity">
 
     <TextView
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:text="Profile Screen" />
+        android:id="@+id/logoutButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textColor="@color/purple_primary"
+        android:textSize="18sp"
+        android:text="Log out"
+        android:background="@drawable/student_rounded_button"
+        android:layout_gravity="center"/>
 
 </FrameLayout>

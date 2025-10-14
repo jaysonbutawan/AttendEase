@@ -11,13 +11,19 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.edit
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
+import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.attendease.databinding.FragmentScheduleScreenBinding
+import com.example.attendease.student.adapter.SessionAdapter
+import com.example.attendease.student.data.Session
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.FirebaseDatabase
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.withContext
 import java.io.BufferedReader
 import java.io.InputStreamReader
 
@@ -25,47 +31,38 @@ class ScheduleFragmentActivity : Fragment() {
 
     private var _binding: FragmentScheduleScreenBinding? = null
     private val binding get() = _binding!!
-    private var isCsvLoaded = false
 
     private val database = FirebaseDatabase.getInstance().reference
     private val currentUser = FirebaseAuth.getInstance().currentUser
+
+    private var isCsvLoaded = false
     private var uploadedCsvUri: Uri? = null
 
     private val TAG = "CSV_DEBUG"
 
-    // Modern File Picker
+    // File picker launcher
     private val openCsvFileLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
-            val data: Intent? = result.data
-            data?.data?.let { uri ->
-                try {
-                    requireContext().contentResolver.takePersistableUriPermission(
-                        uri, Intent.FLAG_GRANT_READ_URI_PERMISSION
-                    )
-                } catch (e: SecurityException) {
-                    Log.e(TAG, "URI permission error: ${e.message}", e)
-                }
-
-                uploadedCsvUri = uri
-                val fileName = getFileName(uri)
-                parseAndUploadCsv(uri, fileName)
+            result.data?.data?.let { uri ->
+                handleCsvUri(uri)
             }
         }
     }
 
-    override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
-    ): View {
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = FragmentScheduleScreenBinding.inflate(inflater, container, false)
         return binding.root
     }
 
+    override fun onDestroyView() {
+        super.onDestroyView()
+        _binding = null
+    }
+
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-
-        // ✅ Load previous cached CSV data (if available)
         checkCachedCsvData()
 
         binding.dropArea.setOnClickListener { openFileManager() }
@@ -73,7 +70,10 @@ class ScheduleFragmentActivity : Fragment() {
         binding.removeCsvButton.setOnClickListener { removeCsvData() }
     }
 
-    // File Picker
+    // ------------------------------- //
+    // CSV Upload and Parsing
+    // ------------------------------- //
+
     private fun openFileManager() {
         val mimeTypes = arrayOf(
             "text/csv", "application/csv", "application/vnd.ms-excel",
@@ -90,98 +90,117 @@ class ScheduleFragmentActivity : Fragment() {
         openCsvFileLauncher.launch(intent)
     }
 
-    // ✅ Parse CSV and upload extracted columns to Firebase
+    private fun handleCsvUri(uri: Uri) {
+        try {
+            requireContext().contentResolver.takePersistableUriPermission(
+                uri, Intent.FLAG_GRANT_READ_URI_PERMISSION
+            )
+        } catch (e: SecurityException) {
+            Log.e(TAG, "URI permission error: ${e.message}", e)
+        }
+
+        uploadedCsvUri = uri
+        val fileName = getFileName(uri)
+        parseAndUploadCsv(uri, fileName)
+    }
+
     @SuppressLint("SetTextI18n")
     private fun parseAndUploadCsv(uri: Uri, fileName: String) {
-        val userId = currentUser?.uid ?: return
-        val userRef = database.child("users").child(userId).child("schedule")
+        val user = currentUser ?: run {
+            binding.fileNameText.text = "Error: Not logged in"
+            return
+        }
 
-        lifecycleScope.launch {
+        lifecycleScope.launch(Dispatchers.IO) {
             try {
-                binding.fileNameText.text = "Reading CSV..."
-                val inputStream = requireContext().contentResolver.openInputStream(uri)
-                val reader = BufferedReader(InputStreamReader(inputStream))
-                val lines = reader.readLines()
+                val reader = BufferedReader(InputStreamReader(requireContext().contentResolver.openInputStream(uri)))
+                val lines = reader.readLines().also { reader.close() }
 
-                Log.d(TAG, "Total CSV Lines: ${lines.size}")
                 if (lines.isEmpty()) {
-                    binding.fileNameText.text = "Error: Empty CSV"
-                    Log.e(TAG, "CSV file is empty")
+                    withContext(Dispatchers.Main) { binding.fileNameText.text = "Error: Empty CSV" }
                     return@launch
                 }
 
-                val scheduleList = mutableListOf<Map<String, String>>()
-
-                for (i in 1 until lines.size) { // Skip header
-                    val columns = lines[i].split(",")
-                    Log.d(TAG, "Line $i -> ${columns.joinToString()}")
-
+                val scheduleList = lines.drop(1).mapNotNull { line ->
+                    val columns = line.split(",")
                     if (columns.size >= 4) {
-                        val scheduleItem = mapOf(
+                        mapOf(
                             "subject" to columns[0].trim(),
                             "room" to columns[1].trim(),
                             "time" to columns[2].trim(),
                             "instructor" to columns[3].trim()
                         )
-                        scheduleList.add(scheduleItem)
-                    } else {
-                        Log.w(TAG, "Skipping invalid row at line $i: ${lines[i]}")
-                    }
+                    } else null
                 }
 
-                if (scheduleList.isEmpty()) {
-                    binding.fileNameText.text = "Error: No valid rows found"
-                    Log.e(TAG, "Parsed list is empty.")
-                    return@launch
+                database.child("users").child(user.uid).child("schedule").setValue(scheduleList).await()
+
+                withContext(Dispatchers.Main) {
+                    cacheCsvData(fileName, scheduleList)
+                    saveCsvFileName(fileName)
+                    isCsvLoaded = true
+                    updateUploadUiState(true)
+                    binding.fileNameText.text = "Uploaded: $fileName"
+                    loadMatchedSessions()
                 }
-
-                // Upload parsed data to Firebase
-                userRef.setValue(scheduleList).await()
-                Log.d(TAG, "Successfully uploaded ${scheduleList.size} rows to Firebase")
-
-                // Cache CSV content locally for persistence
-                cacheCsvData(fileName, scheduleList)
-
-                // Update UI
-                saveCsvFileName(fileName)
-                isCsvLoaded = true
-                updateUploadUiState(true)
-                binding.fileNameText.text = "Uploaded: $fileName"
 
             } catch (e: Exception) {
                 Log.e(TAG, "Error parsing/uploading CSV: ${e.message}", e)
-                binding.fileNameText.text = "Error: ${e.message}"
+                withContext(Dispatchers.Main) { binding.fileNameText.text = "Error: ${e.message}" }
             }
         }
     }
 
-    // ✅ Local cache so user won’t lose CSV after logout/restart
+    // ------------------------------- //
+    // CSV Cache Management
+    // ------------------------------- //
+
     private fun cacheCsvData(fileName: String, data: List<Map<String, String>>) {
         val prefs = requireContext().getSharedPreferences("csv_cache", Activity.MODE_PRIVATE)
         val dataString = data.joinToString(";") {
             "${it["subject"]},${it["room"]},${it["time"]},${it["instructor"]}"
         }
-        prefs.edit()
-            .putString("csvFileName", fileName)
-            .putString("csvData", dataString)
-            .apply()
+        prefs.edit {
+            putString("csvFileName", fileName)
+            putString("csvData", dataString)
+        }
         Log.d(TAG, "Cached CSV data locally: $fileName")
     }
 
-    // ✅ Check cache when opening app again
+    @SuppressLint("SetTextI18n")
     private fun checkCachedCsvData() {
-        val prefs = requireContext().getSharedPreferences("csv_cache", Activity.MODE_PRIVATE)
-        val fileName = prefs.getString("csvFileName", null)
-        val dataString = prefs.getString("csvData", null)
+        val userId = currentUser?.uid ?: return
+        showLoadingState(true)
 
-        if (fileName != null && dataString != null) {
-            isCsvLoaded = true
-            updateUploadUiState(true)
-            binding.fileNameText.text = "Cached: $fileName"
-            Log.d(TAG, "Restored cached CSV: $fileName")
-        } else {
-            Log.d(TAG, "No cached CSV found.")
-            updateUploadUiState(false)
+        viewLifecycleOwner.lifecycleScope.launch {
+            val prefs = requireContext().getSharedPreferences("csv_cache_$userId", Activity.MODE_PRIVATE)
+            val fileName = prefs.getString("csvFileName", null)
+            val dataString = prefs.getString("csvData", null)
+
+            if (fileName != null && dataString != null) {
+                isCsvLoaded = true
+                updateUploadUiState(true)
+                binding.fileNameText.text = "Cached: $fileName"
+                showLoadingState(false)
+                clearRecyclerView()
+                loadMatchedSessions()
+            } else {
+                val userRef = database.child("users").child(userId).child("schedule")
+                userRef.get()
+                    .addOnSuccessListener { snapshot ->
+                        isCsvLoaded = snapshot.exists()
+                        updateUploadUiState(snapshot.exists())
+                        binding.fileNameText.text =
+                            if (snapshot.exists()) "Loaded from Firebase" else "No schedule found"
+                        showLoadingState(false)
+                        if (snapshot.exists()) loadMatchedSessions()
+                    }
+                    .addOnFailureListener { e ->
+                        updateUploadUiState(false)
+                        showLoadingState(false)
+                        Log.e(TAG, "Error loading from Firebase: ${e.message}")
+                    }
+            }
         }
     }
 
@@ -189,16 +208,34 @@ class ScheduleFragmentActivity : Fragment() {
         val userId = currentUser?.uid ?: return
         val userRef = database.child("users").child(userId)
 
-        userRef.child("schedule").removeValue()
-        userRef.child("csvFileName").removeValue()
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                userRef.child("schedule").removeValue().await()
+                userRef.child("csvFileName").removeValue().await()
 
-        // Clear local cache too
-        requireContext().getSharedPreferences("csv_cache", Activity.MODE_PRIVATE)
-            .edit().clear().apply()
+                withContext(Dispatchers.Main) {
+                    requireContext().getSharedPreferences("csv_cache", Activity.MODE_PRIVATE)
+                        .edit { clear() }
 
-        isCsvLoaded = false
-        updateUploadUiState(false)
-        Log.d(TAG, "CSV data removed from Firebase and cache")
+                    isCsvLoaded = false
+                    updateUploadUiState(false)
+                    clearRecyclerView()
+                    loadMatchedSessions()
+                    Log.d(TAG, "CSV data removed successfully")
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error deleting CSV data: ${e.message}")
+            }
+        }
+    }
+
+    // ------------------------------- //
+    // UI Updates
+    // ------------------------------- //
+
+    private fun showLoadingState(isLoading: Boolean) {
+        binding.progressBar.visibility = if (isLoading) View.VISIBLE else View.GONE
+        binding.fileNameText.alpha = if (isLoading) 0.6f else 1f
     }
 
     private fun updateUploadUiState(isLoaded: Boolean) {
@@ -207,20 +244,129 @@ class ScheduleFragmentActivity : Fragment() {
             binding.manageArea.visibility = View.VISIBLE
             binding.fileNameText.text = getSavedCsvFileName()
             showStudentSchedule(true)
+            clearRecyclerView()
+            loadMatchedSessions()
         } else {
             binding.dropArea.visibility = View.VISIBLE
             binding.manageArea.visibility = View.GONE
             showStudentSchedule(false)
+            clearRecyclerView()
         }
+    }
+
+    // ------------------------------- //
+    // Session Matching and Display
+    // ------------------------------- //
+
+    private fun loadMatchedSessions() {
+        val userId = currentUser?.uid ?: return
+        val userRef = database.child("users").child(userId).child("schedule")
+        val roomsRef = database.child("rooms")
+
+        showLoadingState(true)
+        Log.d(TAG, "🔍 Loading matched sessions for user: $userId")
+
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                val userSnapshot = userRef.get().await()
+                if (!userSnapshot.exists()) {
+                    withContext(Dispatchers.Main) { showLoadingState(false) }
+                    return@launch
+                }
+
+                val studentSchedule = userSnapshot.children.mapNotNull {
+                    val subject = it.child("subject").getValue(String::class.java)
+                    val time = it.child("time").getValue(String::class.java)
+                    val instructor = it.child("instructor").getValue(String::class.java)
+                    val room = it.child("room").getValue(String::class.java)
+                    if (subject != null && time != null && instructor != null && room != null)
+                        mapOf("subject" to subject, "time" to time, "instructor" to instructor, "room" to room)
+                    else null
+                }
+
+                val roomsSnapshot = roomsRef.get().await()
+                val matchedSessions = mutableListOf<Session>()
+
+                for (roomSnap in roomsSnapshot.children) {
+                    val roomName = roomSnap.child("name").getValue(String::class.java) ?: continue
+                    val sessionsNode = roomSnap.child("sessions")
+
+                    for (sessionSnap in sessionsNode.children) {
+                        val sessionSubject = sessionSnap.child("subject").getValue(String::class.java)
+                        val teacherId = sessionSnap.child("teacherId").getValue(String::class.java)
+                        val startTime = sessionSnap.child("startTime").getValue(String::class.java)
+                        val endTime = sessionSnap.child("endTime").getValue(String::class.java)
+                        val sessionId = sessionSnap.key ?: continue
+
+                        val teacherSnap = database.child("users").child(teacherId ?: "").get().await()
+                        val instructorName = teacherSnap.child("fullname").getValue(String::class.java) ?: continue
+
+                        val sessionFullTime = "$startTime - $endTime"
+
+                        val match = studentSchedule.any { entry ->
+                            entry["subject"].equals(sessionSubject, true) &&
+                                    entry["instructor"].equals(instructorName, true) &&
+                                    entry["room"].equals(roomName, true) &&
+                                    entry["time"].equals(sessionFullTime, true)
+                        }
+
+                        if (match) {
+                            matchedSessions.add(
+                                Session(
+                                    sessionId = sessionId,
+                                    subject = sessionSubject ?: "",
+                                    instructor = instructorName,
+                                    startTime = startTime ?: "",
+                                    endTime = endTime ?: "",
+                                    room = roomName,
+                                    status = "Upcoming"
+                                )
+                            )
+                        }
+                    }
+                }
+
+                withContext(Dispatchers.Main) {
+                    showLoadingState(false)
+                    if (matchedSessions.isNotEmpty()) setupRecyclerView(matchedSessions)
+                }
+
+            } catch (e: Exception) {
+                Log.e(TAG, "❌ Error during session loading: ${e.message}", e)
+                withContext(Dispatchers.Main) { showLoadingState(false) }
+            }
+        }
+    }
+
+    @SuppressLint("NotifyDataSetChanged")
+    private fun clearRecyclerView() {
+        binding.upcomingClassesRecyclerView.apply {
+            adapter = SessionAdapter(emptyList())
+            adapter?.notifyDataSetChanged()
+            visibility = View.GONE
+        }
+        Log.d(TAG, "🧹 Cleared RecyclerView")
+    }
+
+    private fun setupRecyclerView(sessions: List<Session>) {
+        with(binding.upcomingClassesRecyclerView) {
+            visibility = View.VISIBLE
+            layoutManager = LinearLayoutManager(requireContext())
+            setHasFixedSize(true)
+            adapter = SessionAdapter(sessions)
+        }
+        Log.d(TAG, "📋 RecyclerView loaded with ${sessions.size} sessions")
     }
 
     private fun showStudentSchedule(show: Boolean) {
         val visibility = if (show) View.VISIBLE else View.GONE
         binding.todayLabel.visibility = visibility
         binding.dateLabel.visibility = visibility
-        binding.upcomingClassCard.root.visibility = visibility
-        binding.liveClassCard.root.visibility = visibility
     }
+
+    // ------------------------------- //
+    // SharedPreferences Helpers
+    // ------------------------------- //
 
     private fun getFileName(uri: Uri): String {
         var result: String? = null
@@ -238,16 +384,11 @@ class ScheduleFragmentActivity : Fragment() {
 
     private fun saveCsvFileName(name: String) {
         requireContext().getSharedPreferences("csv_prefs", Activity.MODE_PRIVATE)
-            .edit().putString("csvFileName", name).apply()
+            .edit { putString("csvFileName", name) }
     }
 
     private fun getSavedCsvFileName(): String {
         return requireContext().getSharedPreferences("csv_prefs", Activity.MODE_PRIVATE)
             .getString("csvFileName", "No CSV uploaded") ?: "No CSV uploaded"
-    }
-
-    override fun onDestroyView() {
-        super.onDestroyView()
-        _binding = null
     }
 }
