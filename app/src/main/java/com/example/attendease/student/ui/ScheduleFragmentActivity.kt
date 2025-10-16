@@ -18,6 +18,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.attendease.databinding.FragmentScheduleScreenBinding
 import com.example.attendease.student.adapter.SessionAdapter
 import com.example.attendease.student.data.Session
+import com.example.attendease.student.helper.SessionHelper
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.FirebaseDatabase
 import kotlinx.coroutines.Dispatchers
@@ -259,84 +260,23 @@ class ScheduleFragmentActivity : Fragment() {
     // ------------------------------- //
 
     private fun loadMatchedSessions() {
-        val userId = currentUser?.uid ?: return
-        val userRef = database.child("users").child(userId).child("schedule")
-        val roomsRef = database.child("rooms")
+        viewLifecycleOwner.lifecycleScope.launch {
+            showLoadingState(true)
+            val matchedSessions = SessionHelper.getMatchedSessions()
+            showLoadingState(false)
 
-        showLoadingState(true)
-        Log.d(TAG, "🔍 Loading matched sessions for user: $userId")
-
-        lifecycleScope.launch(Dispatchers.IO) {
-            try {
-                val userSnapshot = userRef.get().await()
-                if (!userSnapshot.exists()) {
-                    withContext(Dispatchers.Main) { showLoadingState(false) }
-                    return@launch
-                }
-
-                val studentSchedule = userSnapshot.children.mapNotNull {
-                    val subject = it.child("subject").getValue(String::class.java)
-                    val time = it.child("time").getValue(String::class.java)
-                    val instructor = it.child("instructor").getValue(String::class.java)
-                    val room = it.child("room").getValue(String::class.java)
-                    if (subject != null && time != null && instructor != null && room != null)
-                        mapOf("subject" to subject, "time" to time, "instructor" to instructor, "room" to room)
-                    else null
-                }
-
-                val roomsSnapshot = roomsRef.get().await()
-                val matchedSessions = mutableListOf<Session>()
-
-                for (roomSnap in roomsSnapshot.children) {
-                    val roomName = roomSnap.child("name").getValue(String::class.java) ?: continue
-                    val sessionsNode = roomSnap.child("sessions")
-
-                    for (sessionSnap in sessionsNode.children) {
-                        val sessionSubject = sessionSnap.child("subject").getValue(String::class.java)
-                        val teacherId = sessionSnap.child("teacherId").getValue(String::class.java)
-                        val startTime = sessionSnap.child("startTime").getValue(String::class.java)
-                        val endTime = sessionSnap.child("endTime").getValue(String::class.java)
-                        val sessionId = sessionSnap.key ?: continue
-
-                        val teacherSnap = database.child("users").child(teacherId ?: "").get().await()
-                        val instructorName = teacherSnap.child("fullname").getValue(String::class.java) ?: continue
-
-                        val sessionFullTime = "$startTime - $endTime"
-
-                        val match = studentSchedule.any { entry ->
-                            entry["subject"].equals(sessionSubject, true) &&
-                                    entry["instructor"].equals(instructorName, true) &&
-                                    entry["room"].equals(roomName, true) &&
-                                    entry["time"].equals(sessionFullTime, true)
-                        }
-
-                        if (match) {
-                            matchedSessions.add(
-                                Session(
-                                    sessionId = sessionId,
-                                    subject = sessionSubject ?: "",
-                                    instructor = instructorName,
-                                    startTime = startTime ?: "",
-                                    endTime = endTime ?: "",
-                                    room = roomName,
-                                    status = "Upcoming"
-                                )
-                            )
-                        }
-                    }
-                }
-
-                withContext(Dispatchers.Main) {
-                    showLoadingState(false)
-                    if (matchedSessions.isNotEmpty()) setupRecyclerView(matchedSessions)
-                }
-
-            } catch (e: Exception) {
-                Log.e(TAG, "❌ Error during session loading: ${e.message}", e)
-                withContext(Dispatchers.Main) { showLoadingState(false) }
+            if (matchedSessions.isNotEmpty()) {
+                setupRecyclerView(matchedSessions.map { session ->
+                    session.copy(
+                        status = if (session.status == "Live") "Live" else "Upcoming"
+                    )
+                })
+            } else {
+                clearRecyclerView()
             }
         }
     }
+
 
     @SuppressLint("NotifyDataSetChanged")
     private fun clearRecyclerView() {

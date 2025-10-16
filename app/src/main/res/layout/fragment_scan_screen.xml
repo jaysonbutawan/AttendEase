@@ -1,175 +1,146 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     tools:context=".student.ui.ScanFragmentActivity">
 
+    <!-- Scroll container -->
     <ScrollView
-        android:id="@+id/scrollView"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:fillViewport="true">
 
-    <androidx.constraintlayout.widget.ConstraintLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:paddingStart="16dp"
-        android:paddingEnd="16dp"
-        android:paddingBottom="24dp">
-
-        <ImageView
-            android:id="@+id/qrIconHeader"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
-            android:contentDescription="QR Code Icon"
-            android:src="@drawable/ic_qr_code"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintHorizontal_bias="0.279"
-            app:layout_constraintHorizontal_chainStyle="packed"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            app:tint="@color/purple_primary" />
-
-        <TextView
-        android:id="@+id/qrScannerTitle"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="8dp"
-        android:text="QR Code Scanner"
-        android:textColor="@color/purple_primary"
-        android:textSize="22sp"
-        android:textStyle="bold"
-        app:layout_constraintStart_toEndOf="@id/qrIconHeader"
-        app:layout_constraintTop_toTopOf="@id/qrIconHeader"
-        app:layout_constraintBottom_toBottomOf="@id/qrIconHeader"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0"/>
-
-    <TextView
-        android:id="@+id/qrScannerSubtitle"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
-        android:textAlignment="center"
-        android:text="Scan your teacher's QR code to mark attendance"
-        android:textColor="@android:color/black"
-        android:textSize="14sp"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/qrScannerTitle" />
-
-    <androidx.cardview.widget.CardView
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_marginTop="24dp"
-        app:cardCornerRadius="16dp"
-        app:cardElevation="4dp"
-        app:layout_constraintTop_toBottomOf="@id/qrScannerSubtitle"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent">
-
         <androidx.constraintlayout.widget.ConstraintLayout
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:padding="20dp">
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:paddingBottom="24dp">
 
+            <!-- Header Icon -->
             <ImageView
-                android:id="@+id/cameraIconTitle"
-                android:layout_width="24dp"
-                android:layout_height="24dp"
-                android:src="@drawable/ic_camera"
-                app:tint="@android:color/black"
-                android:contentDescription="Camera Icon"
+                android:id="@+id/qrIconHeader"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:src="@drawable/ic_qr_code"
+                android:contentDescription="QR Code Icon"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent" />
+                app:layout_constraintEnd_toStartOf="@+id/qrScannerTitle"
+                app:layout_constraintTop_toTopOf="parent"
+                app:tint="@color/purple_primary" />
 
+            <!-- Header Title -->
             <TextView
-                android:id="@+id/cameraScannerLabel"
+                android:id="@+id/qrScannerTitle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
-                android:text="Camera Scanner"
-                android:textColor="@android:color/black"
-                android:textSize="18sp"
+                android:text="QR Code Scanner"
+                android:textColor="@color/purple_primary"
+                android:textSize="22sp"
                 android:textStyle="bold"
-                app:layout_constraintStart_toEndOf="@id/cameraIconTitle"
-                app:layout_constraintTop_toTopOf="@id/cameraIconTitle"
-                app:layout_constraintBottom_toBottomOf="@id/cameraIconTitle" />
+                app:layout_constraintStart_toEndOf="@id/qrIconHeader"
+                app:layout_constraintTop_toTopOf="@id/qrIconHeader"
+                app:layout_constraintBottom_toBottomOf="@id/qrIconHeader" />
 
+            <!-- Subtitle -->
             <TextView
-                android:id="@+id/cameraScannerInstructions"
+                android:id="@+id/qrScannerSubtitle"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:text="Position the QR code within the camera frame"
+                android:layout_marginTop="8dp"
+                android:textAlignment="center"
+                android:text="Scan your teacher's QR code to mark attendance"
                 android:textColor="@android:color/black"
                 android:textSize="14sp"
+                app:layout_constraintTop_toBottomOf="@id/qrScannerTitle"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/cameraScannerLabel" />
+                app:layout_constraintEnd_toEndOf="parent" />
 
-            <androidx.constraintlayout.widget.ConstraintLayout
-                android:id="@+id/cameraPreviewPlaceholder"
+            <!-- Card container -->
+            <androidx.cardview.widget.CardView
                 android:layout_width="match_parent"
-                android:layout_height="0dp"
-                android:layout_marginTop="20dp"
-                android:background="@drawable/rounded_black_with_dashed_border"
-                app:layout_constraintDimensionRatio="H,1:1"
-                app:layout_constraintEnd_toEndOf="parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="24dp"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="4dp"
+                app:layout_constraintTop_toBottomOf="@id/qrScannerSubtitle"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/cameraScannerInstructions">
+                app:layout_constraintEnd_toEndOf="parent">
 
-                <ImageView
-                    android:id="@+id/cameraPlaceholderIcon"
-                    android:layout_width="60dp"
-                    android:layout_height="60dp"
-                    android:contentDescription="Camera Placeholder Icon"
-                    android:src="@drawable/ic_camera"
-                    app:layout_constraintBottom_toTopOf="@+id/joinClassFirstText"
-                    app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toTopOf="parent"
-                    app:layout_constraintVertical_chainStyle="packed"
-                    app:tint="@android:color/white" />
-
-                <TextView
-                    android:id="@+id/joinClassFirstText"
-                    android:layout_width="wrap_content"
+                <androidx.constraintlayout.widget.ConstraintLayout
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="16dp"
-                    android:text="Join class first"
-                    android:textColor="@color/white"
-                    android:textSize="18sp"
-                    android:textStyle="bold"
-                    app:layout_constraintBottom_toTopOf="@+id/noActiveClassText"
-                    app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toBottomOf="@id/cameraPlaceholderIcon" />
+                    android:padding="20dp">
 
-                <TextView
-                    android:id="@+id/noActiveClassText"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
-                    android:text="No active class session"
-                    android:textColor="@color/white_alpha_50"
-                    android:textSize="14sp"
-                    app:layout_constraintBottom_toBottomOf="parent"
-                    app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toBottomOf="@id/joinClassFirstText" />
-            </androidx.constraintlayout.widget.ConstraintLayout>
+                    <!-- Camera title -->
+                    <ImageView
+                        android:id="@+id/cameraIconTitle"
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:src="@drawable/ic_camera"
+                        android:contentDescription="Camera Icon"
+                        app:tint="@android:color/black"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toTopOf="parent" />
 
+                    <TextView
+                        android:id="@+id/cameraScannerLabel"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="8dp"
+                        android:text="Camera Scanner"
+                        android:textColor="@android:color/black"
+                        android:textSize="18sp"
+                        android:textStyle="bold"
+                        app:layout_constraintStart_toEndOf="@id/cameraIconTitle"
+                        app:layout_constraintTop_toTopOf="@id/cameraIconTitle"
+                        app:layout_constraintBottom_toBottomOf="@id/cameraIconTitle" />
+
+                    <!-- Instructions -->
+                    <TextView
+                        android:id="@+id/cameraScannerInstructions"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="Position the QR code within the camera frame"
+                        android:textColor="@android:color/black"
+                        android:textSize="14sp"
+                        app:layout_constraintTop_toBottomOf="@id/cameraScannerLabel"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintEnd_toEndOf="parent" />
+
+                    <!-- ✅ CameraX Preview View -->
+                    <androidx.camera.view.PreviewView
+                        android:id="@+id/previewView"
+                        android:layout_width="match_parent"
+                        android:layout_height="300dp"
+                        android:layout_marginTop="20dp"
+                        android:background="@drawable/rounded_black_with_dashed_border"
+                        app:layout_constraintTop_toBottomOf="@id/cameraScannerInstructions"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintBottom_toBottomOf="parent" />
+
+                    <!-- Optional text to show QR result -->
+                    <TextView
+                        android:id="@+id/qrResultText"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="16dp"
+                        android:text="Waiting for QR code..."
+                        android:textColor="@android:color/black"
+                        android:textSize="14sp"
+                        app:layout_constraintTop_toBottomOf="@id/previewView"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintBottom_toBottomOf="parent" />
+
+                </androidx.constraintlayout.widget.ConstraintLayout>
+            </androidx.cardview.widget.CardView>
 
         </androidx.constraintlayout.widget.ConstraintLayout>
-    </androidx.cardview.widget.CardView>
-
-    </androidx.constraintlayout.widget.ConstraintLayout>
     </ScrollView>
-
-
 </FrameLayout>

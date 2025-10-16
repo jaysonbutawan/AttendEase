@@ -9,8 +9,11 @@ import android.view.View
 import android.view.ViewGroup
 import com.example.attendease.common.ui.auth.StudentLoginActivity
 import com.example.attendease.databinding.FragmentProfileScreenBinding
+import com.example.attendease.common.firebase.AuthRepository
+import com.google.firebase.auth.FirebaseAuth
 
 class ProfileFragmentActivity : Fragment() {
+    private lateinit var auth : AuthRepository
 private lateinit var binding: FragmentProfileScreenBinding
 
     @SuppressLint("SuspiciousIndentation")
@@ -19,6 +22,7 @@ private lateinit var binding: FragmentProfileScreenBinding
         savedInstanceState: Bundle?
     ): View? {
       binding = FragmentProfileScreenBinding.inflate(inflater, container, false)
+        auth = AuthRepository(FirebaseAuth.getInstance())
         return binding.root
     }
    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -26,9 +30,9 @@ private lateinit var binding: FragmentProfileScreenBinding
 
 
         binding.logoutButton.setOnClickListener {
+            auth.signOut()
             val intent = Intent(requireContext(), StudentLoginActivity::class.java)
             startActivity(intent)
-            requireActivity().finish()
         }
     }
 }
