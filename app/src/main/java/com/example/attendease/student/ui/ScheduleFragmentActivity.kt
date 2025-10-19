@@ -273,8 +273,22 @@ class ScheduleFragmentActivity : Fragment() {
                 })
             } else {
                 clearRecyclerView()
+                showNoClassesAvailableDialog()
             }
         }
+    }
+    private fun showNoClassesAvailableDialog() {
+        // You should use the AlertDialog.Builder from the androidx.appcompat.app package
+        // or com.google.android.material.dialog.MaterialAlertDialogBuilder
+        if (!isAdded) return
+
+        androidx.appcompat.app.AlertDialog.Builder(requireContext())
+            .setTitle("No Matching Classes Found")
+            .setMessage("We couldn't match any sessions from the server with the schedule you uploaded. Please ensure the subject, time, room, and instructor names in your CSV file exactly match the available classes.")
+            .setPositiveButton("OK") { dialog, _ ->
+                dialog.dismiss()
+            }
+            .show()
     }
 
 
