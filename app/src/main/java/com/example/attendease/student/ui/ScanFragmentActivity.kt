@@ -2,15 +2,10 @@ package com.example.attendease.student.ui
 
 import android.Manifest
 import android.annotation.SuppressLint
-import android.content.Intent
-import android.content.pm.PackageManager
 import android.location.Location
-import android.location.LocationManager
 import android.os.Bundle
 import android.os.Looper
 import android.util.Log
-import android.provider.Settings
-import android.content.Context
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -18,12 +13,15 @@ import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.*
 import androidx.camera.lifecycle.ProcessCameraProvider
-import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import com.example.attendease.databinding.FragmentScanScreenBinding
 import com.example.attendease.student.helper.LocationValidator
+import com.google.android.gms.location.LocationCallback
+import com.google.android.gms.location.LocationRequest
+import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.Priority
 import com.google.android.gms.maps.model.LatLng
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.FirebaseDatabase
@@ -83,12 +81,18 @@ class ScanFragmentActivity : Fragment() {
     }
 
     private fun startCamera() {
+        if (!scanningEnabled) {
+            binding.previewView.visibility = View.GONE  // hide camera preview
+            return
+        }
+
+        binding.previewView.visibility = View.VISIBLE // show
         val cameraProviderFuture = ProcessCameraProvider.getInstance(requireContext())
         cameraProviderFuture.addListener({
             val cameraProvider = cameraProviderFuture.get()
 
             val preview = Preview.Builder().build().apply {
-                setSurfaceProvider(binding.previewView.surfaceProvider)
+                surfaceProvider = binding.previewView.surfaceProvider
             }
 
             val analysis = ImageAnalysis.Builder()
@@ -141,104 +145,50 @@ class ScanFragmentActivity : Fragment() {
     }
 
     @SuppressLint("MissingPermission")
-    private fun getCurrentLocation(onLocationRetrieved: (Location) -> Unit) {
-        val fusedLocationClient = LocationServices.getFusedLocationProviderClient(requireContext())
+    private fun getLocation(onResult: (Location?) -> Unit) {
+        val fused = LocationServices.getFusedLocationProviderClient(requireContext())
+        val request = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 2000L)
+            .setMaxUpdates(5)
+            .setMinUpdateIntervalMillis(1000L)
+            .setWaitForAccurateLocation(true)
+            .build()
 
-        // Step 1: Check if permission is granted
-        if (ActivityCompat.checkSelfPermission(
-                requireContext(),
-                Manifest.permission.ACCESS_FINE_LOCATION
-            ) != PackageManager.PERMISSION_GRANTED
-        ) {
-            ActivityCompat.requestPermissions(
-                requireActivity(),
-                arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION),
-                100
-            )
-            Toast.makeText(requireContext(), "Location permission required", Toast.LENGTH_SHORT).show()
-            return
-        }
-
-        // Step 2: Check if GPS/Location is enabled
-        val locationManager = requireContext().getSystemService(Context.LOCATION_SERVICE) as LocationManager
-        val isGpsEnabled =
-            locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) ||
-                    locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
-
-        if (!isGpsEnabled) {
-            Toast.makeText(requireContext(), "Please enable GPS to continue", Toast.LENGTH_LONG).show()
-            startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS))
-            return
-        }
-
-        // Step 3: Try to get cached high-accuracy location
-        fusedLocationClient.getCurrentLocation(
-            com.google.android.gms.location.Priority.PRIORITY_HIGH_ACCURACY,
-            null
-        ).addOnSuccessListener { location ->
-            if (location != null) {
-                Log.d("QR_SCAN", "Lat: ${location.latitude}, Lng: ${location.longitude}")
-                onLocationRetrieved(location)
-            } else {
-                Log.w("QR_SCAN", "No cached location — requesting single GPS update...")
-
-                // Step 4: Request a one-time fresh location update
-                val request = com.google.android.gms.location.LocationRequest.Builder(
-                    com.google.android.gms.location.Priority.PRIORITY_HIGH_ACCURACY,
-                    2000L // interval in ms
-                ).setMaxUpdates(1)
-                    .setWaitForAccurateLocation(true)
-                    .build()
-
-                val callback = object : com.google.android.gms.location.LocationCallback() {
-                    override fun onLocationResult(result: com.google.android.gms.location.LocationResult) {
-                        val freshLocation = result.lastLocation
-                        if (freshLocation != null) {
-                            Log.d(
-                                "QR_SCAN",
-                                "Fetched new location: ${freshLocation.latitude}, ${freshLocation.longitude}"
-                            )
-                            onLocationRetrieved(freshLocation)
-                        } else {
-                            Log.e("QR_SCAN", "Still no location — user might be indoors or GPS is off.")
-                            Toast.makeText(
-                                requireContext(),
-                                "Unable to get location. Try moving outdoors or turning on GPS.",
-                                Toast.LENGTH_SHORT
-                            ).show()
-                        }
-                        fusedLocationClient.removeLocationUpdates(this)
-                    }
+        val callback = object : LocationCallback() {
+            private val collected = mutableListOf<Location>()
+            override fun onLocationResult(result: LocationResult) {
+                collected += result.locations
+                val best = collected.minByOrNull { it.accuracy }
+                if (best != null && best.accuracy <= 10f || collected.size >= 5) {
+                    fused.removeLocationUpdates(this)
+                    Log.d(
+                        "USER_LOCATION_LOG",
+                        """ 
+                    • Latitude: ${best?.latitude}
+                    • Longitude: ${best?.longitude}
+                    • Accuracy: ${best?.accuracy} meters
+                    • Provider: ${best?.provider}
+                    • Timestamp: ${SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date(best?.time ?: 0))}
+                    """.trimIndent()
+                    )
+                    onResult(best)
                 }
-
-                fusedLocationClient.requestLocationUpdates(request, callback, Looper.getMainLooper())
             }
-        }.addOnFailureListener { e ->
-            Log.e("QR_SCAN", "Failed to get location: ${e.message}", e)
-            Toast.makeText(requireContext(), "Failed to get location", Toast.LENGTH_SHORT).show()
         }
+        fused.requestLocationUpdates(request, callback, Looper.getMainLooper())
     }
-
-
-
 
     @SuppressLint("MissingPermission")
     private fun handleQrScanned(qrValue: String) {
         if (!scanningEnabled) return
         scanningEnabled = false
-        Log.d("QR_FLOW", "Entered handleQrScanned with value: $qrValue")
-        database.get().addOnSuccessListener { snapshot ->
-            Log.d("QR_FLOW", "Fetched database snapshot: ${snapshot.childrenCount} rooms")
-            var matchFound = false
 
+        database.get().addOnSuccessListener { snapshot ->
+            var matchFound = false
             for (roomSnapshot in snapshot.children) {
-                Log.d("QR_FLOW", "Checking room: ${roomSnapshot.key}")
                 val sessions = roomSnapshot.child("sessions")
-                Log.d("QR_FLOW", "Sessions found: ${sessions.childrenCount}")
                 for (session in sessions.children) {
                     val qrValid = session.child("qrValid").getValue(Boolean::class.java) ?: false
                     val storedQR = session.child("qrCode").getValue(String::class.java)
-                    Log.d("QR_FLOW", "Session QR: $storedQR")
                     val startTime = session.child("startTime").getValue(String::class.java) ?: ""
                     val allowanceTime = session.child("allowanceTime").getValue(Int::class.java) ?: 0
                     val sessionId = session.key ?: continue
@@ -246,45 +196,71 @@ class ScanFragmentActivity : Fragment() {
 
                     if (qrValid && qrValue == storedQR) {
                         matchFound = true
-                        Log.d("QR_SCAN", "Matched QR for session: $sessionId in room: $roomId")
-                        Log.d("QR_SCAN", "Matched QR in Room: $roomId, Session: $sessionId")
-                        Toast.makeText(requireContext(), "Detected Room: $roomId\nSession: $sessionId", Toast.LENGTH_SHORT).show()
+                        val attendanceRef = database.child(roomId)
+                            .child("sessions")
+                            .child(sessionId)
+                            .child("attendance")
+                            .child(FirebaseAuth.getInstance().currentUser?.uid ?: "NO_USER")
 
+                        attendanceRef.get().addOnSuccessListener { attendanceSnapshot ->
+                            val sessionStatus = session.child("sessionStatus").getValue(String::class.java) ?: "ended"
 
-                        // Get polygon points
-                        val polygonPoints = mutableListOf<LatLng>()
-                        val polygonSnapshot = roomSnapshot.child("polygon")
-                        for (point in polygonSnapshot.children) {
-                            val lat = point.child("lat").getValue(Double::class.java)
-                            val lng = point.child("lng").getValue(Double::class.java)
-                            if (lat != null && lng != null) polygonPoints.add(LatLng(lat, lng))
-                        }
-
-                        // ✅ Fetch location and mark attendance
-                        getCurrentLocation { location ->
-                            val studentLatLng = LatLng(location.latitude, location.longitude)
-                            val isInside = LocationValidator.isInsidePolygon(studentLatLng, polygonPoints, toleranceMeters = 5f)
-
-                            Log.d("LOCATION_VALIDATION", "Student Location: ${studentLatLng.latitude}, ${studentLatLng.longitude}")
-                            Log.d("LOCATION_VALIDATION", "Polygon Points: ${polygonPoints.joinToString()}")
-                            Log.d("LOCATION_VALIDATION", "Is Inside Polygon: $isInside")
-
-                            if (isInside) {
-                                Toast.makeText(requireContext(), "Inside classroom area ✅", Toast.LENGTH_SHORT).show()
-                            } else {
-                                Toast.makeText(requireContext(), "Outside classroom area ⚠️", Toast.LENGTH_SHORT).show()
+                            // Check if session is ongoing
+                            if (sessionStatus != "started") {
+                                Log.d("SCAN_FLOW", "Session not ongoing — skipping markAttendance")
+                                Toast.makeText(requireContext(), "Session has ended. Scanning disabled.", Toast.LENGTH_SHORT).show()
+                                scanningEnabled = false
+                                binding.previewView.visibility = View.GONE
+                                return@addOnSuccessListener
                             }
 
-                            markAttendance(roomId, sessionId, startTime, allowanceTime, isInside)
+                            // Check if already scanned
+                            if (attendanceSnapshot.exists()) {
+                                Log.d("SCAN_FLOW", "Attendance already exists — skipping markAttendance")
+                                Toast.makeText(requireContext(), "You already scanned for this class.", Toast.LENGTH_LONG).show()
+                                scanningEnabled = false
+                                binding.previewView.visibility = View.GONE
+                                return@addOnSuccessListener
+                            }
+
+                            val polygonPoints = mutableListOf<LatLng>()
+                            val polygonSnapshot = roomSnapshot.child("polygon")
+                            for (point in polygonSnapshot.children) {
+                                val lat = point.child("lat").getValue(Double::class.java)
+                                val lng = point.child("lng").getValue(Double::class.java)
+                                if (lat != null && lng != null) polygonPoints.add(LatLng(lat, lng))
+                            }
+
+                            getLocation { location ->
+                                val studentLatLng = location?.let { LatLng(it.latitude, it.longitude) }
+
+                                // --- Buffered Polygon Check ---
+                                val isInsideBuffer = studentLatLng?.let {
+                                    LocationValidator.isInsidePolygon(it, polygonPoints, toleranceMeters = 50f)
+                                } ?: false
+
+                                // --- Determine Confidence ---
+                                val confidence = when {
+                                    qrValid && qrValue == storedQR -> "Confirmed by QR"
+                                    isInsideBuffer -> "High or Medium"
+                                    else -> "Low / Needs review"
+                                }
+
+                                // --- Mark Attendance ---
+                                markAttendance(
+                                    roomId,
+                                    sessionId,
+                                    startTime,
+                                    allowanceTime,
+                                    isInsideBuffer,
+                                    confidence
+                                )
+                            }
                         }
-                        Log.d("QR_FLOW", "Match found? $matchFound")
-
-
-
-                        break  // ✅ stop looping sessions but allow location to run
+                        break
                     }
                 }
-                if (matchFound) break  // stop looping rooms too
+                if (matchFound) break
             }
 
             if (!matchFound) {
@@ -294,13 +270,13 @@ class ScanFragmentActivity : Fragment() {
         }
     }
 
-
     private fun markAttendance(
         roomId: String,
         sessionId: String,
         startTime: String,
         allowanceTime: Int,
-        isInside: Boolean
+        isInside: Boolean,
+        confidence: String
     ) {
         val formatter = SimpleDateFormat("hh:mm a", Locale.getDefault())
         val currentTime = formatter.format(Date())
@@ -313,12 +289,14 @@ class ScanFragmentActivity : Fragment() {
             else -> "late" to diffMinutes - allowanceTime
         }
 
-        val finalStatus = if (!isInside) "partial" else status
+        val finalStatus = when (confidence) {
+            "Confirmed by QR" -> "present"
+            "High or Medium" -> if (isInside) status else "partial"
+            else -> "absent"
+        }
 
         val auth = FirebaseAuth.getInstance()
-        val currentUser = auth.currentUser
-        if (currentUser == null) {
-            Log.e("QR_SCAN", "No logged in user found")
+        val currentUser = auth.currentUser ?: run {
             Toast.makeText(requireContext(), "Not logged in", Toast.LENGTH_SHORT).show()
             scanningEnabled = true
             return
@@ -327,38 +305,42 @@ class ScanFragmentActivity : Fragment() {
         val studentId = currentUser.uid
         val studentName = currentUser.displayName ?: "Unknown Student"
 
-        Log.d("ATTENDANCE_PATH", "roomId=$roomId, sessionId=$sessionId, studentId=$studentId")
-
         val attendanceRef = database.child(roomId)
             .child("sessions")
             .child(sessionId)
             .child("attendance")
             .child(studentId)
-            .child(System.currentTimeMillis().toString())
 
         val attendanceData = mapOf(
             "name" to studentName,
             "status" to finalStatus,
             "timeScanned" to currentTime,
             "lateDuration" to lateDuration,
-            "totalOutsideTime" to 0
+            "totalOutsideTime" to 0,
+            "confidence" to confidence
         )
+        Log.d("ATTENDANCE_DEBUG", """
+roomId: $roomId
+sessionId: $sessionId
+studentId: $studentId
+finalStatus: $finalStatus
+currentTime: $currentTime
+confidence: $confidence
+""".trimIndent())
 
-        Log.d("QR_SCAN", "Writing to: /rooms/$roomId/sessions/$sessionId/attendance/$studentId")
-        Log.d("QR_SCAN", attendanceData.toString())
 
         attendanceRef.setValue(attendanceData)
             .addOnSuccessListener {
                 Toast.makeText(requireContext(), "Attendance marked: $finalStatus", Toast.LENGTH_LONG).show()
-                Log.d("QR_SCAN", "Successfully marked attendance for $studentName")
                 scanningEnabled = true
             }
-            .addOnFailureListener { e ->
-                Log.e("QR_SCAN", "Failed to mark attendance: ${e.message}")
+            .addOnFailureListener {
+                Log.e("ATTENDANCE_ERROR", "Failed to write attendance", )
                 Toast.makeText(requireContext(), "Failed to mark attendance", Toast.LENGTH_SHORT).show()
                 scanningEnabled = true
             }
     }
+
 
     override fun onDestroyView() {
         super.onDestroyView()
@@ -373,9 +355,24 @@ class ScanFragmentActivity : Fragment() {
     }
     override fun onResume() {
         super.onResume()
-        getCurrentLocation { location ->
-            Log.d("QR_SCAN", "Warm-up GPS: ${location.latitude}, ${location.longitude}")
+        database.get().addOnSuccessListener { snapshot ->
+            for (roomSnapshot in snapshot.children) {
+                val sessions = roomSnapshot.child("sessions")
+                for (session in sessions.children) {
+                    val sessionStatus = session.child("status").getValue(String::class.java) ?: "ended"
+                    val attendanceSnapshot = session.child("attendance")
+                        .child(FirebaseAuth.getInstance().currentUser?.uid ?: "NO_USER")
+
+                    scanningEnabled = sessionStatus == "ended" || !attendanceSnapshot.exists()
+                    binding.previewView.visibility = if (scanningEnabled) View.VISIBLE else View.GONE
+                }
+            }
+        }
+
+        getLocation { location ->
+            Log.d("QR_SCAN", "Warm-up GPS: ${location?.latitude}, ${location?.longitude}")
         }
     }
+
 
 }

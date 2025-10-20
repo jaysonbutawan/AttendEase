@@ -1,6 +1,7 @@
 package com.example.attendease.teacher.data.repositories
 
 import android.util.Log
+import com.example.attendease.teacher.data.model.AttendanceRecord
 import com.example.attendease.teacher.data.model.ClassSession
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.DataSnapshot
@@ -69,8 +70,42 @@ class SessionRepository {
             }
         })
     }
+    fun getAttendancePerSession(
+        roomId: String,
+        sessionId: String,
+        onResult: (List<AttendanceRecord>) -> Unit,
+        onError: (String) -> Unit
+    ) {
+        val attendanceRef = roomsRef
+            .child(roomId)
+            .child("sessions")
+            .child(sessionId)
+            .child("attendance")
 
-    // ✅ Update QR code for a session (inside its room)
+        attendanceRef.addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val attendanceList = mutableListOf<AttendanceRecord>()
+                for (attendanceSnap in snapshot.children) {
+                    val record = attendanceSnap.getValue(AttendanceRecord::class.java)
+                    record?.id = attendanceSnap.key
+                    record?.let { attendanceList.add(it) }
+                }
+
+                Log.d(
+                    "SessionRepository",
+                    "Loaded ${attendanceList.size} attendance records for session $sessionId"
+                )
+                onResult(attendanceList)
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                onError(error.message)
+            }
+        })
+    }
+
+
+
     fun updateQrCode(roomId: String, sessionId: String, qrCode: String) {
         val qrData = mapOf(
             "qrCode" to qrCode,

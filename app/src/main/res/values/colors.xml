@@ -26,7 +26,7 @@
     <color name="teacher">#e4007d</color>
 
     <!-- Dark Theme Colors (Optional) -->
-    <color name="dark_background">#121212</color>
+    <color name="dark_background">#F0DC34</color>
     <color name="dark_surface">#1E1E1E</color>
     <color name="white">#FFFCFB</color>
     <color name="dark_secondary_text">#B3B3B3</color>
