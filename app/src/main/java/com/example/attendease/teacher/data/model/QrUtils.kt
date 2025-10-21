@@ -6,6 +6,9 @@ import com.google.zxing.BarcodeFormat
 import com.google.zxing.qrcode.QRCodeWriter
 import androidx.core.graphics.createBitmap
 import androidx.core.graphics.set
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 
 object QrUtils {

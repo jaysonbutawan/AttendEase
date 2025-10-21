@@ -20,8 +20,6 @@ class SessionAdapter(
                 tvSubjectName.text = session.subject
                 tvRoomCode.text = session.roomName ?: session.roomId
                 tvTime.text = "${session.startTime} - ${session.endTime}"
-                tvDate.text = session.date
-
                 startClassButton.setOnClickListener {
                     onStartClassClick(session)
                 }

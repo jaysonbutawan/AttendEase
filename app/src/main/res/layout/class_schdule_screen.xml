@@ -66,28 +66,6 @@
             android:padding="12dp"
             android:layout_marginBottom="16dp" />
 
-        <!-- Date Selection -->
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Date"
-            android:textSize="16sp"
-            android:textColor="#333333"
-            android:layout_marginBottom="8dp" />
-
-        <EditText
-            android:id="@+id/editTextDate"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="Select a date"
-            android:background="@drawable/edit_text_background"
-            android:padding="12dp"
-            android:autofillHints="null"
-            android:inputType="date"
-            android:layout_marginBottom="16dp"
-            android:focusable="true"
-            android:clickable="true" />
-
         <!-- Time Selection (unchanged) -->
         <LinearLayout
             android:layout_width="match_parent"

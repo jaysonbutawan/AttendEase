@@ -282,6 +282,8 @@ class ScanFragmentActivity : Fragment() {
         val currentTime = formatter.format(Date())
         val current = formatter.parse(currentTime)
         val start = formatter.parse(startTime)
+        val dateFormatter = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()) // <-- for date node
+        val currentDate = dateFormatter.format(Date())
         val diffMinutes = abs((current.time - start.time) / (1000 * 60)).toInt()
 
         val (status, lateDuration) = when {
@@ -309,6 +311,7 @@ class ScanFragmentActivity : Fragment() {
             .child("sessions")
             .child(sessionId)
             .child("attendance")
+            .child(currentDate)
             .child(studentId)
 
         val attendanceData = mapOf(
@@ -317,7 +320,8 @@ class ScanFragmentActivity : Fragment() {
             "timeScanned" to currentTime,
             "lateDuration" to lateDuration,
             "totalOutsideTime" to 0,
-            "confidence" to confidence
+            "confidence" to confidence,
+            "qrValid" to (confidence == "Confirmed by QR")
         )
         Log.d("ATTENDANCE_DEBUG", """
 roomId: $roomId

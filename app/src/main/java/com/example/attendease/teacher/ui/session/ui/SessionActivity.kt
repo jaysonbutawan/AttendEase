@@ -44,15 +44,15 @@ class SessionActivity : AppCompatActivity() {
         binding.presentCount.text = "${attendanceListViewModel.attendanceList.value?.size ?: 0} Present"
 
         binding.tvPresentCount.setOnClickListener {
-            showAttendanceBottomSheet("present")
+            showAttendanceBottomSheet("Present")
         }
 
         binding.tvAbsentCount.setOnClickListener {
-            showAttendanceBottomSheet("absent")
+            showAttendanceBottomSheet("Absent")
         }
 
         binding.outsideCard.setOnClickListener {
-            showAttendanceBottomSheet("outside")
+            showAttendanceBottomSheet("Partial")
         }
 
 

@@ -6,6 +6,7 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.attendease.R
 import com.example.attendease.databinding.AttendanceBottomSheetBinding
@@ -59,8 +60,17 @@ class AttendanceListBottomSheet : BottomSheetDialogFragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-
+        val colorResId = when (statusType?.lowercase()) {
+            "present" -> R.color.success_color
+            "absent" -> R.color.red
+            "partial" -> R.color.dark_background
+            else -> R.color.black
+        }
         binding.tvStatusTitle.text = "$statusType Students"
+        binding.tvStatusTitle.setTextColor(
+            ContextCompat.getColor(binding.tvStatusTitle.context, colorResId)
+        )
+
         val filtered = attendanceList.filter { it.status?.equals(statusType, true) == true }
 
         val adapter = AttendanceAdapter(filtered)

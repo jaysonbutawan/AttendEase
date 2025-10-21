@@ -22,6 +22,7 @@ import com.example.attendease.teacher.ui.classschedule.viewModel.RoomListViewMod
 import com.google.firebase.auth.FirebaseAuth
 import java.util.Calendar
 import androidx.core.graphics.drawable.toDrawable
+import com.example.attendease.teacher.data.model.QrUtils
 
 
 class ClassScheduleDialog : DialogFragment() {
@@ -98,33 +99,15 @@ class ClassScheduleDialog : DialogFragment() {
             ).show()
         }
 
-        // Date picker
-        binding.editTextDate.setOnClickListener {
-            val calendar = Calendar.getInstance()
-            val year = calendar.get(Calendar.YEAR)
-            val month = calendar.get(Calendar.MONTH)
-            val day = calendar.get(Calendar.DAY_OF_MONTH)
-
-            DatePickerDialog(
-                requireContext(),
-                { _, selectedYear, selectedMonth, selectedDay ->
-                    val date = "$selectedDay/${selectedMonth + 1}/$selectedYear"
-                    binding.editTextDate.setText(date)
-                    Log.d("ClassScheduleDialog", "Date picked: $date")
-                },
-                year,
-                month,
-                day
-            ).show()
-        }
 
         binding.btnSchedule.setOnClickListener {
             val selectedRoom = binding.spinnerRoom.selectedItem as? Room
             if (selectedRoom != null) {
+
                 val session = ClassSession(
-                    roomId = selectedRoom.roomId ?: "", // 👈 get the ID safely
+                    roomId = selectedRoom.roomId ?: "",
                     subject = binding.editTextSubject.text.toString(),
-                    date = binding.editTextDate.text.toString(),
+                    date = "",
                     startTime = binding.startTimePicker.text.toString(),
                     endTime = binding.endTimePicker.text.toString(),
                     allowanceTime = 10,

@@ -14,22 +14,35 @@ class SessionRepository {
 
     // ✅ Create a new session under the correct room
     fun createSession(session: ClassSession, callback: (Boolean, String?) -> Unit) {
-        val sessionId = roomsRef.push().key
+        // 1. Reference to the root of the database (or the /rooms node, depending on roomsRef setup)
+        // Assuming roomsRef is a reference to the Firebase root or "rooms" node
+        val sessionsRootRef = FirebaseDatabase.getInstance()
+            .getReference("rooms")
+            .child(session.roomId ?: "unknown") // Use the actual Room ID from the session object
+            .child("sessions")
+
+        // 2. Generate the unique key using push() on the sessions reference
+        val newSessionRef = sessionsRootRef.push()
+        val sessionId = newSessionRef.key
+
         if (sessionId == null) {
             callback(false, null)
             return
         }
 
+        // 3. Create a copy of the session object with the newly generated ID
         val sessionWithId = session.copy(sessionId = sessionId)
-        roomsRef.child(session.roomId ?: "unknown")
-            .child("sessions")
-            .child(sessionId)
-            .setValue(sessionWithId)
-            .addOnSuccessListener { callback(true, sessionId) }
-            .addOnFailureListener { callback(false, null) }
+
+        // 4. Set the value using the reference created by push()
+        newSessionRef.setValue(sessionWithId)
+            .addOnSuccessListener {
+                callback(true, sessionId)
+            }
+            .addOnFailureListener {
+                callback(false, null)
+            }
     }
 
-    // ✅ Get all sessions for the logged-in teacher
     fun getSessions(
         onResult: (List<ClassSession>) -> Unit,
         onError: (String) -> Unit
@@ -76,11 +89,16 @@ class SessionRepository {
         onResult: (List<AttendanceRecord>) -> Unit,
         onError: (String) -> Unit
     ) {
+
+        val currentDate = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault())
+            .format(java.util.Date())
+
         val attendanceRef = roomsRef
             .child(roomId)
             .child("sessions")
             .child(sessionId)
             .child("attendance")
+            .child(currentDate)
 
         attendanceRef.addValueEventListener(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
