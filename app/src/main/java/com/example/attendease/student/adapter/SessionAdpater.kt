@@ -46,17 +46,6 @@ class SessionAdapter(
         } else {
             binding.statusBadge.text = "Upcoming"
             binding.statusBadge.setBackgroundResource(R.drawable.student_rounded_button)
-            binding.reminderButton.text = "Set Reminder"
-            binding.reminderButton.setBackgroundColor(ContextCompat.getColor(context, R.color.blue))
-        }
-
-        // Button click
-        binding.reminderButton.setOnClickListener {
-            if (session.status == "Live") {
-                Toast.makeText(context, "Joining ${session.subject}...", Toast.LENGTH_SHORT).show()
-            } else {
-                Toast.makeText(context, "Reminder set for ${session.subject}", Toast.LENGTH_SHORT).show()
-            }
         }
     }
 

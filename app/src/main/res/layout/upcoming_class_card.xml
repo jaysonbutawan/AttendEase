@@ -12,7 +12,7 @@
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@android:color/white"
+        android:background="@drawable/blurry_purple_bg"
         android:padding="20dp">
 
         <TextView
@@ -20,7 +20,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:text="Data Structures &amp; Algorithms"
-            android:textColor="@android:color/black"
+            android:textColor="@color/blue"
             android:textSize="18sp"
             android:textStyle="bold"
             app:layout_constraintStart_toStartOf="parent"
@@ -107,12 +107,11 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="Reminder"
                 android:textColor="@color/white"
-                android:backgroundTint="@color/blue"
+                android:backgroundTint="@android:color/transparent"
                 android:drawableStart="@drawable/clock"
                 app:tint="@color/white"
-                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                style="@style/Widget.MaterialComponents.Button.TextButton"
                 android:layout_marginStart="8dp"/>
         </LinearLayout>
     </androidx.constraintlayout.widget.ConstraintLayout>

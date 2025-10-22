@@ -74,4 +74,70 @@ object LocationValidator {
         )
         return result[0] <= radiusMeters
     }
+
+    fun getDistanceFromPolygon(
+        studentLocation: LatLng,
+        polygonPoints: List<LatLng>
+    ): Float {
+        if (polygonPoints.isEmpty()) return Float.MAX_VALUE
+
+        var minDistance = Float.MAX_VALUE
+        val result = FloatArray(1)
+
+        for (i in polygonPoints.indices) {
+            val start = polygonPoints[i]
+            val end = polygonPoints[(i + 1) % polygonPoints.size]
+
+            val distance = distanceToSegment(studentLocation, start, end)
+            if (distance < minDistance) minDistance = distance
+        }
+
+        return minDistance
+    }
+
+    private fun distanceToSegment(
+        p: LatLng,
+        v: LatLng,
+        w: LatLng
+    ): Float {
+        val result = FloatArray(1)
+
+        val l2 = distanceBetween(v, w)
+        if (l2 == 0f) {
+            Location.distanceBetween(
+                p.latitude, p.longitude,
+                v.latitude, v.longitude,
+                result
+            )
+            return result[0]
+        }
+
+        val t = ((p.longitude - v.longitude) * (w.longitude - v.longitude) +
+                (p.latitude - v.latitude) * (w.latitude - v.latitude)) / l2
+
+        val clampedT = t.coerceIn(0.0, 1.0)
+        val projection = LatLng(
+            v.latitude + clampedT * (w.latitude - v.latitude),
+            v.longitude + clampedT * (w.longitude - v.longitude)
+        )
+
+        Location.distanceBetween(
+            p.latitude, p.longitude,
+            projection.latitude, projection.longitude,
+            result
+        )
+
+        return result[0]
+    }
+
+    private fun distanceBetween(a: LatLng, b: LatLng): Float {
+        val result = FloatArray(1)
+        Location.distanceBetween(
+            a.latitude, a.longitude,
+            b.latitude, b.longitude,
+            result
+        )
+        return result[0]
+    }
+
 }

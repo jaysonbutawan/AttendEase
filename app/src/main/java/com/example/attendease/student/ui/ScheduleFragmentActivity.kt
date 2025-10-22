@@ -27,6 +27,9 @@ import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import java.io.BufferedReader
 import java.io.InputStreamReader
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 class ScheduleFragmentActivity : Fragment() {
 
@@ -69,6 +72,29 @@ class ScheduleFragmentActivity : Fragment() {
         binding.dropArea.setOnClickListener { openFileManager() }
         binding.updateCsvButton.setOnClickListener { openFileManager() }
         binding.removeCsvButton.setOnClickListener { removeCsvData() }
+
+        binding.swipeRefreshLayout.setOnRefreshListener {
+            refreshFragmentData()
+        }
+        loadMatchedSessions()
+        updateDateLabel()
+    }
+    private fun updateDateLabel() {
+
+
+        val dateFormat = SimpleDateFormat("EEEE, MMMM d, yyyy", Locale.getDefault())
+        val currentDate = Date()
+        val dateString = dateFormat.format(currentDate)
+
+        binding.dateLabel.text = dateString
+    }
+
+    private fun refreshFragmentData() {
+        // Start the spinner immediately
+        binding.swipeRefreshLayout.isRefreshing = true
+
+        // Call the main function to reload all data in the fragment
+        loadMatchedSessions()
     }
 
     // ------------------------------- //
@@ -278,8 +304,7 @@ class ScheduleFragmentActivity : Fragment() {
         }
     }
     private fun showNoClassesAvailableDialog() {
-        // You should use the AlertDialog.Builder from the androidx.appcompat.app package
-        // or com.google.android.material.dialog.MaterialAlertDialogBuilder
+
         if (!isAdded) return
 
         androidx.appcompat.app.AlertDialog.Builder(requireContext())

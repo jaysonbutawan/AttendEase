@@ -65,6 +65,13 @@ class ScanFragmentActivity : Fragment() {
             else Toast.makeText(requireContext(), "Camera permission denied", Toast.LENGTH_SHORT).show()
         }
 
+    private fun showLoading(isLoading: Boolean) {
+        if (_binding == null) return // Safety check if fragment is destroyed
+
+        binding.progressBar.visibility = if (isLoading) View.VISIBLE else View.GONE
+        binding.previewView.visibility = if (isLoading) View.INVISIBLE else View.VISIBLE
+    }
+
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
@@ -182,6 +189,8 @@ class ScanFragmentActivity : Fragment() {
         if (!scanningEnabled) return
         scanningEnabled = false
 
+        showLoading(true)
+
         database.get().addOnSuccessListener { snapshot ->
             var matchFound = false
             for (roomSnapshot in snapshot.children) {
@@ -220,6 +229,7 @@ class ScanFragmentActivity : Fragment() {
                                 Toast.makeText(requireContext(), "You already scanned for this class.", Toast.LENGTH_LONG).show()
                                 scanningEnabled = false
                                 binding.previewView.visibility = View.GONE
+                                showLoading(false)
                                 return@addOnSuccessListener
                             }
 
@@ -232,30 +242,77 @@ class ScanFragmentActivity : Fragment() {
                             }
 
                             getLocation { location ->
-                                val studentLatLng = location?.let { LatLng(it.latitude, it.longitude) }
+                                if (location == null) {
+                                    Toast.makeText(requireContext(), "Unable to get location.", Toast.LENGTH_SHORT).show()
+                                    scanningEnabled = true
+                                    return@getLocation
+                                }
 
-                                // --- Buffered Polygon Check ---
-                                val isInsideBuffer = studentLatLng?.let {
+                                val studentLatLng = LatLng(location.latitude, location.longitude)
+                                val gpsAccuracy = location.accuracy // meters
+
+                                // --- Compute distance from the polygon (approximate classroom area) ---
+                                val distance = LocationValidator.getDistanceFromPolygon(studentLatLng, polygonPoints)
+
+                                // --- Buffered Polygon Check (for safety margin) ---
+                                val isInsideBuffer = studentLatLng.let {
                                     LocationValidator.isInsidePolygon(it, polygonPoints, toleranceMeters = 50f)
-                                } ?: false
+                                }
 
-                                // --- Determine Confidence ---
-                                val confidence = when {
-                                    qrValid && qrValue == storedQR -> "Confirmed by QR"
-                                    isInsideBuffer -> "High or Medium"
+                                Log.d(
+                                    "USER_LOCATION_LOG",
+                                    """
+        Distance: $distance meters
+        Accuracy: $gpsAccuracy meters
+        QR Valid: $qrValid
+        Inside Buffer: $isInsideBuffer
+        """.trimIndent()
+                                )
+
+                                // --- Determine validation result ---
+                                val validationResult = when {
+                                    qrValid && gpsAccuracy > 30 -> "present"
+                                    distance <= 15 && gpsAccuracy <= 30 -> "present"
+                                    else -> "partial"
+                                }
+
+                                // --- Set confidence label ---
+                                val confidence = when (validationResult) {
+                                    "present" -> if (gpsAccuracy <= 30) "High" else "Confirmed by QR"
+                                    "partial" -> "Partial — low GPS accuracy"
                                     else -> "Low / Needs review"
                                 }
 
-                                // --- Mark Attendance ---
-                                markAttendance(
-                                    roomId,
-                                    sessionId,
-                                    startTime,
-                                    allowanceTime,
-                                    isInsideBuffer,
-                                    confidence
-                                )
+                                // --- Handle result ---
+                                when (validationResult) {
+                                    "present" -> markAttendance(
+                                        roomId,
+                                        sessionId,
+                                        startTime,
+                                        allowanceTime,
+                                        isInsideBuffer,
+                                        confidence,
+                                        validationResult
+                                    )
+
+
+
+                                    else -> {
+                                        markAttendance(
+                                            roomId,
+                                            sessionId,
+                                            startTime,
+                                            allowanceTime,
+                                            isInsideBuffer,
+                                            confidence,
+                                            validationResult
+                                        )
+
+
+                                    }
+                                }
                             }
+
                         }
                         break
                     }
@@ -276,74 +333,143 @@ class ScanFragmentActivity : Fragment() {
         startTime: String,
         allowanceTime: Int,
         isInside: Boolean,
-        confidence: String
+        confidence: String,
+        validationResult: String
     ) {
-        val formatter = SimpleDateFormat("hh:mm a", Locale.getDefault())
-        val currentTime = formatter.format(Date())
-        val current = formatter.parse(currentTime)
-        val start = formatter.parse(startTime)
-        val dateFormatter = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()) // <-- for date node
-        val currentDate = dateFormatter.format(Date())
-        val diffMinutes = abs((current.time - start.time) / (1000 * 60)).toInt()
+        try {
+            val formatter = SimpleDateFormat("hh:mm a", Locale.getDefault())
+            val currentTime = formatter.format(Date())
+            val current = formatter.parse(currentTime)
+            val start = formatter.parse(startTime)
+            val dateFormatter = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+            val currentDate = dateFormatter.format(Date())
 
-        val (status, lateDuration) = when {
-            diffMinutes <= allowanceTime -> "present" to 0
-            else -> "late" to diffMinutes - allowanceTime
-        }
+            val diffMinutes = abs((current.time - start.time) / (1000 * 60)).toInt()
 
-        val finalStatus = when (confidence) {
-            "Confirmed by QR" -> "present"
-            "High or Medium" -> if (isInside) status else "partial"
-            else -> "absent"
-        }
+            // Determine present or late
+            val (status, lateDuration) = when {
+                diffMinutes <= 0 -> "present" to 0
+                diffMinutes <= allowanceTime -> "present" to 0
+                else -> "late" to diffMinutes - allowanceTime
+            }
 
-        val auth = FirebaseAuth.getInstance()
-        val currentUser = auth.currentUser ?: run {
-            Toast.makeText(requireContext(), "Not logged in", Toast.LENGTH_SHORT).show()
+            // Apply the final logic based on validation result
+            val finalStatus = when (validationResult) {
+                "present" -> status // can be "present" or "late"
+                "partial" -> "partial"
+                else -> "absent"
+            }
+
+            // Get user info
+            val auth = FirebaseAuth.getInstance()
+            val currentUser = auth.currentUser ?: run {
+                Toast.makeText(requireContext(), "Not logged in", Toast.LENGTH_SHORT).show()
+                scanningEnabled = true
+                return
+            }
+
+            val studentId = currentUser.uid
+            val studentName = currentUser.displayName ?: "Unknown Student"
+
+            // Firebase reference
+            val attendanceRef = database.child(roomId)
+                .child("sessions")
+                .child(sessionId)
+                .child("attendance")
+                .child(currentDate)
+                .child(studentId)
+
+            // Data to store
+            val attendanceData = mapOf(
+                "name" to studentName,
+                "status" to finalStatus,
+                "timeScanned" to currentTime,
+                "lateDuration" to lateDuration,
+                "totalOutsideTime" to 0,
+                "confidence" to confidence,
+                "qrValid" to (confidence == "Confirmed by QR")
+            )
+
+            Log.d(
+                "USER_LOCATION_LOG",
+                """
+            roomId: $roomId
+            sessionId: $sessionId
+            studentId: $studentId
+            finalStatus: $finalStatus
+            confidence: $confidence
+            validationResult: $validationResult
+            time: $currentTime
+            """.trimIndent()
+            )
+
+            // Save to Firebase
+            attendanceRef.setValue(attendanceData)
+                .addOnSuccessListener {
+                    Toast.makeText(
+                        requireContext(),
+                        "Attendance marked: $finalStatus",
+                        Toast.LENGTH_LONG
+                    ).show()
+                    showLoading(false)
+                    scanningEnabled = true
+                    binding.previewView.visibility = View.GONE
+                    val dataToPass = Bundle().apply {
+                        putString("status", finalStatus)
+                        putString("timeScanned", currentTime)
+                        // Add other necessary session info to the Bundle
+                        putString("roomId", roomId)
+                        putString("sessionId", sessionId)
+                    }
+
+                    // 3. Navigate to the confirmation fragment (JoinClassFragmentActivity)
+                    // Assuming you are using SafeArgs or standard Fragment transactions
+                    navigateToJoinClass(dataToPass)
+                }
+                .addOnFailureListener { e ->
+                    Log.e("ATTENDANCE_ERROR", "Failed to write attendance", e)
+                    Toast.makeText(
+                        requireContext(),
+                        "Failed to mark attendance",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                    showLoading(false)
+                    scanningEnabled = true
+                }
+
+        } catch (e: Exception) {
+            Log.e("ATTENDANCE_EXCEPTION", "Error marking attendance", e)
+            Toast.makeText(requireContext(), "Unexpected error occurred.", Toast.LENGTH_SHORT).show()
+            showLoading(false)
             scanningEnabled = true
-            return
         }
-
-        val studentId = currentUser.uid
-        val studentName = currentUser.displayName ?: "Unknown Student"
-
-        val attendanceRef = database.child(roomId)
-            .child("sessions")
-            .child(sessionId)
-            .child("attendance")
-            .child(currentDate)
-            .child(studentId)
-
-        val attendanceData = mapOf(
-            "name" to studentName,
-            "status" to finalStatus,
-            "timeScanned" to currentTime,
-            "lateDuration" to lateDuration,
-            "totalOutsideTime" to 0,
-            "confidence" to confidence,
-            "qrValid" to (confidence == "Confirmed by QR")
-        )
-        Log.d("ATTENDANCE_DEBUG", """
-roomId: $roomId
-sessionId: $sessionId
-studentId: $studentId
-finalStatus: $finalStatus
-currentTime: $currentTime
-confidence: $confidence
-""".trimIndent())
-
-
-        attendanceRef.setValue(attendanceData)
-            .addOnSuccessListener {
-                Toast.makeText(requireContext(), "Attendance marked: $finalStatus", Toast.LENGTH_LONG).show()
-                scanningEnabled = true
-            }
-            .addOnFailureListener {
-                Log.e("ATTENDANCE_ERROR", "Failed to write attendance", )
-                Toast.makeText(requireContext(), "Failed to mark attendance", Toast.LENGTH_SHORT).show()
-                scanningEnabled = true
-            }
     }
+
+
+    private fun navigateToJoinClass(dataToPass: Bundle) {
+        val joinClassFragment = JoinClassFragmentActivity()
+        joinClassFragment.arguments = dataToPass
+
+        // Use replace, and DO NOT add to back stack
+        (requireActivity() as StudentDashboardActivity).loadFragment("joinClass")
+
+    }
+//
+//// ... (New function in ScanFragmentActivity)
+
+//    private fun navigateToJoinClass(bundle: Bundle) {
+//        // 💡 IMPORTANT: Replace this with your actual navigation method (SafeArgs, findNavController, or FragmentManager)
+//
+//        // Example using FragmentManager (if not using Navigation Component)
+//        val joinClassFragment = JoinClassFragmentActivity().apply {
+//            arguments = bundle
+//        }
+//
+//        parentFragmentManager.beginTransaction()
+//            .replace(this.id, joinClassFragment) // Replace the current fragment container with the new one
+//            .addToBackStack(null) // Optional: Allows the user to press back to the scanner
+//            .commit()
+//    }
 
 
     override fun onDestroyView() {
@@ -360,6 +486,9 @@ confidence: $confidence
     override fun onResume() {
         super.onResume()
         database.get().addOnSuccessListener { snapshot ->
+            if (scanningEnabled && binding.progressBar.visibility == View.GONE) {
+                startCamera() // Re-bind the camera
+            }
             for (roomSnapshot in snapshot.children) {
                 val sessions = roomSnapshot.child("sessions")
                 for (session in sessions.children) {
