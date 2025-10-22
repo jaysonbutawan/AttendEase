@@ -449,28 +449,9 @@ class ScanFragmentActivity : Fragment() {
     private fun navigateToJoinClass(dataToPass: Bundle) {
         val joinClassFragment = JoinClassFragmentActivity()
         joinClassFragment.arguments = dataToPass
-
-        // Use replace, and DO NOT add to back stack
         (requireActivity() as StudentDashboardActivity).loadFragment("joinClass")
 
     }
-//
-//// ... (New function in ScanFragmentActivity)
-
-//    private fun navigateToJoinClass(bundle: Bundle) {
-//        // 💡 IMPORTANT: Replace this with your actual navigation method (SafeArgs, findNavController, or FragmentManager)
-//
-//        // Example using FragmentManager (if not using Navigation Component)
-//        val joinClassFragment = JoinClassFragmentActivity().apply {
-//            arguments = bundle
-//        }
-//
-//        parentFragmentManager.beginTransaction()
-//            .replace(this.id, joinClassFragment) // Replace the current fragment container with the new one
-//            .addToBackStack(null) // Optional: Allows the user to press back to the scanner
-//            .commit()
-//    }
-
 
     override fun onDestroyView() {
         super.onDestroyView()

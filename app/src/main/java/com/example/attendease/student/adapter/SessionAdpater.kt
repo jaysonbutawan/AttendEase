@@ -4,7 +4,6 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.view.LayoutInflater
 import android.view.ViewGroup
-import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
 import com.example.attendease.R
@@ -41,8 +40,6 @@ class SessionAdapter(
         if (session.status == "Live") {
             binding.statusBadge.text = "Live"
             binding.statusBadge.setBackgroundResource(R.drawable.teacher_rounded_button)
-            binding.reminderButton.text = "Join Class Now"
-            binding.reminderButton.setBackgroundColor(ContextCompat.getColor(context, R.color.red))
         } else {
             binding.statusBadge.text = "Upcoming"
             binding.statusBadge.setBackgroundResource(R.drawable.student_rounded_button)

@@ -2,6 +2,7 @@ package com.example.attendease.student.ui
 
 import android.annotation.SuppressLint
 import android.os.Bundle
+import android.util.Log
 import android.view.View
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
@@ -53,8 +54,9 @@ class StudentDashboardActivity : AppCompatActivity() {
         binding.swipeRefresh.setOnRefreshListener {
             val currentFragment = supportFragmentManager.findFragmentById(R.id.fragmentContainer)
             val canScrollUp = currentFragment?.view?.canScrollVertically(-1) ?: false
-            if (!canScrollUp) {
+            if (!canScrollUp)  {
                 refreshDashboard()
+                updateLiveSessionStatus()
             } else {
                 binding.swipeRefresh.isRefreshing = false
             }
@@ -63,13 +65,19 @@ class StudentDashboardActivity : AppCompatActivity() {
         // ✅ Load default fragment
         loadFragment("schedule")
 
-        // ✅ Check for live class
-        checkForLiveClass()
+        updateLiveSessionStatus()
 
-        // ✅ "Join now" button → Scan fragment
         binding.joinNowBtn.setOnClickListener {
-            loadFragment("scan")
+            when (binding.joinNowBtn.text.toString()) {
+                "Join Now" -> {
+                    loadFragment("scan")
+                }
+                "Joined" -> {
+                    loadFragment("joinClass")
+                }
+            }
         }
+
 
         // ✅ Bottom navigation
         binding.bottomNavigationView.setOnItemSelectedListener { item ->
@@ -216,24 +224,20 @@ class StudentDashboardActivity : AppCompatActivity() {
         transaction.commit()
     }
 
-    @SuppressLint("SetTextI18n")
-    private fun checkForLiveClass() {
-        binding.onClassCard.visibility = View.GONE
-
-        scope.launch {
-            val sessions = SessionHelper.getMatchedSessions()
-            val liveClass = sessions.firstOrNull { it.status == "Live" }
-
-            if (liveClass != null) {
-                binding.onClassCard.visibility = View.VISIBLE
-                binding.liveClassHeader.text = "${liveClass.subject}\nis live now in ${liveClass.room}"
-            } else {
-                binding.onClassCard.visibility = View.GONE
-            }
-        }
-    }
-
     private fun refreshDashboard() {
+        binding.swipeRefresh.isRefreshing = true
+            updateLiveSessionStatus()
+        }
+
+
+    @SuppressLint("SimpleDateFormat", "SetTextI18n")
+    private fun updateLiveSessionStatus() {
+        val currentUser = FirebaseAuth.getInstance().currentUser ?: return
+        val database = FirebaseDatabase.getInstance()
+        val roomsRef = database.getReference("rooms")
+        val today = java.text.SimpleDateFormat("yyyy-MM-dd").format(java.util.Date())
+
+        // start refresh UI
         binding.swipeRefresh.isRefreshing = true
 
         scope.launch {
@@ -241,19 +245,120 @@ class StudentDashboardActivity : AppCompatActivity() {
                 val sessions = SessionHelper.getMatchedSessions()
                 val liveClass = sessions.firstOrNull { it.status == "Live" }
 
-                if (liveClass != null) {
-                    binding.onClassCard.visibility = View.VISIBLE
-                    binding.liveClassHeader.text = "${liveClass.subject}\nis live now in ${liveClass.room}"
-                } else {
+                if (liveClass == null) {
                     binding.onClassCard.visibility = View.GONE
+                    binding.swipeRefresh.isRefreshing = false
+                    return@launch
                 }
+
+                binding.onClassCard.visibility = View.VISIBLE
+                binding.liveClassHeader.text = "${liveClass.subject}\nis live now in ${liveClass.room}"
+
+                // find the room id: try fields "name" and "roomName"
+                roomsRef.addListenerForSingleValueEvent(object : ValueEventListener {
+                    override fun onDataChange(roomSnapshot: DataSnapshot) {
+                        var foundRoomId: String? = null
+                        for (room in roomSnapshot.children) {
+                            val name1 = room.child("name").getValue(String::class.java)
+                            val name2 = room.child("roomName").getValue(String::class.java)
+                            if (name1 == liveClass.room || name2 == liveClass.room) {
+                                foundRoomId = room.key
+                                break
+                            }
+                        }
+
+                        if (foundRoomId == null) {
+                            // keep card visible (we already showed it) but can't verify attendance
+                            binding.joinNowBtn.text = "Join Now"
+                            binding.joinNowBtn.isEnabled = true
+                            binding.joinNowBtn.alpha = 1f
+                            binding.swipeRefresh.isRefreshing = false
+                            return
+                        }
+
+                        // now point at the session node under that room
+                        val sessionId = liveClass.sessionId
+                        val sessionRef = roomsRef.child(foundRoomId).child("sessions").child(sessionId)
+
+                        sessionRef.addListenerForSingleValueEvent(object : ValueEventListener {
+                            override fun onDataChange(sessionSnapshot: DataSnapshot) {
+                                val sessionStatus = sessionSnapshot.child("sessionStatus").getValue(String::class.java)
+                                    ?: sessionSnapshot.child("status").getValue(String::class.java)
+
+                                if (sessionStatus == "Live" || sessionStatus == "started" || sessionStatus == "Started") {
+                                    val attendanceExactRef = sessionRef.child("attendance").child(today).child(currentUser.uid)
+                                    attendanceExactRef.addListenerForSingleValueEvent(object : ValueEventListener {
+                                        override fun onDataChange(snapshot: DataSnapshot) {
+                                            if (snapshot.exists()) {
+                                                showJoinedState()
+                                            } else {
+                                                searchAttendanceFallback(sessionRef, currentUser.uid, today)
+                                            }
+                                            binding.swipeRefresh.isRefreshing = false
+                                        }
+
+                                        override fun onCancelled(error: DatabaseError) {
+                                            binding.swipeRefresh.isRefreshing = false
+                                        }
+                                    })
+                                } else {
+                                    binding.onClassCard.visibility = View.GONE
+                                    binding.joinNowBtn.isEnabled = false
+                                    binding.joinNowBtn.alpha = 0.5f
+                                    binding.swipeRefresh.isRefreshing = false
+                                }
+                            }
+
+                            override fun onCancelled(error: DatabaseError) {
+                                binding.swipeRefresh.isRefreshing = false
+                            }
+                        })
+                    }
+
+                    override fun onCancelled(error: DatabaseError) {
+                        binding.swipeRefresh.isRefreshing = false
+                    }
+                })
             } catch (e: Exception) {
                 e.printStackTrace()
-            } finally {
+                binding.onClassCard.visibility = View.GONE
                 binding.swipeRefresh.isRefreshing = false
             }
         }
     }
+
+    private fun showJoinedState() {
+        binding.joinNowBtn.text = "Joined"
+        binding.joinNowBtn.isEnabled = true
+        binding.joinNowBtn.alpha = 0.6f
+    }
+
+    private fun searchAttendanceFallback(sessionRef: DatabaseReference, uid: String, today: String) {
+        sessionRef.child("attendance").addListenerForSingleValueEvent(object : ValueEventListener {
+            override fun onDataChange(attSnapshot: DataSnapshot) {
+                // ✅ Only proceed if today's date node exists
+                if (attSnapshot.hasChild(today)) {
+                    val userNode = attSnapshot.child(today).child(uid)
+                    if (userNode.exists()) {
+                        showJoinedState()
+                        return
+                    }
+                }
+
+                binding.joinNowBtn.text = "Join Now"
+                binding.joinNowBtn.isEnabled = true
+                binding.joinNowBtn.alpha = 1f
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                binding.joinNowBtn.text = "Join Now"
+                binding.joinNowBtn.isEnabled = true
+                binding.joinNowBtn.alpha = 1f
+            }
+        })
+    }
+
+
 
     override fun onDestroy() {
         super.onDestroy()
