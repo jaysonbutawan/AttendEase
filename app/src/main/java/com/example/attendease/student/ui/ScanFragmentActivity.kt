@@ -344,11 +344,11 @@ class ScanFragmentActivity : Fragment() {
             val dateFormatter = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
             val currentDate = dateFormatter.format(Date())
 
-            val diffMinutes = abs((current.time - start.time) / (1000 * 60)).toInt()
+            val diffMinutes = ((current.time - start.time) / (1000 * 60)).toInt()
 
             // Determine present or late
             val (status, lateDuration) = when {
-                diffMinutes <= 0 -> "present" to 0
+                diffMinutes < 0 -> "present" to 0
                 diffMinutes <= allowanceTime -> "present" to 0
                 else -> "late" to diffMinutes - allowanceTime
             }

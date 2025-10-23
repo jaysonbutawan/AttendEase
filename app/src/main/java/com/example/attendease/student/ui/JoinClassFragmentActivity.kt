@@ -1,60 +1,110 @@
 package com.example.attendease.student.ui
 
 import android.os.Bundle
-import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import com.example.attendease.R
+import android.widget.Toast
+import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
+import com.example.attendease.databinding.FragmentJoinClassScreenBinding
+import com.example.attendease.student.helper.SessionHelper
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.database.FirebaseDatabase
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 
-// TODO: Rename parameter arguments, choose names that match
-// the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
-private const val ARG_PARAM1 = "param1"
-private const val ARG_PARAM2 = "param2"
-
-/**
- * A simple [Fragment] subclass.
- * Use the [JoinClassFragment.newInstance] factory method to
- * create an instance of this fragment.
- */
 class JoinClassFragmentActivity : Fragment() {
-    // TODO: Rename and change types of parameters
-    private var param1: String? = null
-    private var param2: String? = null
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        arguments?.let {
-            param1 = it.getString(ARG_PARAM1)
-            param2 = it.getString(ARG_PARAM2)
-        }
-    }
+    private var _binding: FragmentJoinClassScreenBinding? = null
+    private val binding get() = _binding!!
+    private val currentUser = FirebaseAuth.getInstance().currentUser
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
-    ): View? {
-        // Inflate the layout for this fragment
-        return inflater.inflate(R.layout.fragment_join_class_screen, container, false)
+    ): View {
+        _binding = FragmentJoinClassScreenBinding.inflate(inflater, container, false)
+        return binding.root
     }
 
-    companion object {
-        /**
-         * Use this factory method to create a new instance of
-         * this fragment using the provided parameters.
-         *
-         * @param param1 Parameter 1.
-         * @param param2 Parameter 2.
-         * @return A new instance of fragment JoinClassFragment.
-         */
-        // TODO: Rename and change types and number of parameters
-        @JvmStatic
-        fun newInstance(param1: String, param2: String) =
-            JoinClassFragmentActivity().apply {
-                arguments = Bundle().apply {
-                    putString(ARG_PARAM1, param1)
-                    putString(ARG_PARAM2, param2)
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        fetchAndDisplayLatestAttendance()
+    }
+
+    private fun fetchAndDisplayLatestAttendance() {
+        val studentId = currentUser?.uid ?: return
+
+        // Show loading
+        binding.progressBar.visibility = View.VISIBLE
+
+        lifecycleScope.launch {
+            try {
+                val report = SessionHelper.getLatestAttendanceReport(studentId)
+                binding.progressBar.visibility = View.GONE
+
+                if (report == null) {
+                    Toast.makeText(requireContext(), "No attendance record found.", Toast.LENGTH_SHORT).show()
+                    return@launch
                 }
+
+                // ✅ Extract fields
+                val subject = report["subject"] as? String ?: "Unknown Subject"
+                val room = report["roomName"] as? String ?: "Unknown Room"
+                val sessionStatus = report["sessionStatus"] as? String ?: "N/A"
+                val startTime = report["startTime"] as? String ?: "N/A"
+                val endTime = report["endTime"] as? String ?: "N/A"
+                val timeScanned = report["timeScanned"] as? String ?: "N/A"
+                val status = report["status"] as? String ?: "N/A"
+                val lateDuration = (report["lateDuration"] as? Int) ?: 0
+                val teacherId = report["teacherId"] as? String ?: ""
+
+                // ✅ Fetch instructor name
+                val teacherSnap = FirebaseDatabase.getInstance()
+                    .getReference("users")
+                    .child(teacherId)
+                    .get()
+                    .await()
+                val instructorName = teacherSnap.child("fullname").getValue(String::class.java) ?: "Unknown Instructor"
+
+                // ✅ Update header card based on status
+                when (status.lowercase()) {
+                    "present" -> {
+                        binding.statusCard.setCardBackgroundColor(resources.getColor(android.R.color.holo_green_dark, null))
+                        binding.lateTitle.text = "Present"
+                        binding.lateSubtitle.text = "You arrived on time!"
+                    }
+                    "late" -> {
+                        binding.statusCard.setCardBackgroundColor(resources.getColor(android.R.color.holo_orange_dark, null))
+                        binding.lateTitle.text = "Late Arrival"
+                        binding.lateSubtitle.text = "You are late by ${lateDuration} min(s)"
+                    }
+                    else -> {
+                        binding.statusCard.setCardBackgroundColor(resources.getColor(android.R.color.holo_red_dark, null))
+                        binding.lateTitle.text = "Absent"
+                        binding.lateSubtitle.text = "You missed the class."
+                    }
+                }
+
+                // ✅ Update session details
+                binding.subjectValue.text = subject
+                binding.roomValue.text = room
+                binding.statusValue.text = sessionStatus.replaceFirstChar { it.uppercase() }
+                binding.instructorValue.text = instructorName
+
+                // ✅ Show room & scanned time under card
+                binding.roomTimeText.text = "$room   $timeScanned"
+
+            } catch (e: Exception) {
+                binding.progressBar.visibility = View.GONE
+                Toast.makeText(requireContext(), "Error: ${e.message}", Toast.LENGTH_SHORT).show()
             }
+        }
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        _binding = null
     }
 }

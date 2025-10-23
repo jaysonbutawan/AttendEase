@@ -2,7 +2,6 @@ package com.example.attendease.student.ui
 
 import android.annotation.SuppressLint
 import android.os.Bundle
-import android.util.Log
 import android.view.View
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
@@ -216,7 +215,7 @@ class StudentDashboardActivity : AppCompatActivity() {
             "joinClass" -> {
                 if (joinClassFragment == null) {
                     joinClassFragment = JoinClassFragmentActivity()
-                    transaction.add(R.id.fragmentContainer, joinClassFragment!!, "joinClass")
+                    transaction.add(R.id.fragmentContainer, joinClassFragment, "joinClass")
                 } else transaction.show(joinClassFragment)
             }
         }
