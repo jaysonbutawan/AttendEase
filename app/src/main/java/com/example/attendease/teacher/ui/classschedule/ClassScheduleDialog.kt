@@ -23,6 +23,7 @@ import com.google.firebase.auth.FirebaseAuth
 import java.util.Calendar
 import androidx.core.graphics.drawable.toDrawable
 import com.example.attendease.teacher.data.model.QrUtils
+import com.google.firebase.database.FirebaseDatabase
 
 
 class ClassScheduleDialog : DialogFragment() {
@@ -43,6 +44,20 @@ class ClassScheduleDialog : DialogFragment() {
     @SuppressLint("DefaultLocale")
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        // Prefill if opened for editing
+        arguments?.let { args ->
+            val subject = args.getString("subject")
+            val startTime = args.getString("startTime")
+            val endTime = args.getString("endTime")
+
+            binding.editTextSubject.setText(subject)
+            binding.startTimePicker.setText(startTime)
+            binding.endTimePicker.setText(endTime)
+
+            // If you want to change button label
+            binding.btnSchedule.text = "Update Session"
+        }
+
         viewModel = ViewModelProvider(requireActivity())[RoomListViewModel::class.java]
 
         viewModel.rooms.observe(viewLifecycleOwner) { roomList ->
@@ -103,28 +118,78 @@ class ClassScheduleDialog : DialogFragment() {
         binding.btnSchedule.setOnClickListener {
             val selectedRoom = binding.spinnerRoom.selectedItem as? Room
             if (selectedRoom != null) {
+                val subject = binding.editTextSubject.text.toString()
+                val startTime = binding.startTimePicker.text.toString()
+                val endTime = binding.endTimePicker.text.toString()
 
-                val session = ClassSession(
-                    roomId = selectedRoom.roomId ?: "",
-                    subject = binding.editTextSubject.text.toString(),
-                    date = "",
-                    startTime = binding.startTimePicker.text.toString(),
-                    endTime = binding.endTimePicker.text.toString(),
-                    allowanceTime = 10,
-                    teacherId = FirebaseAuth.getInstance().currentUser?.uid ?: "",
-                    qrCode = ""
-                )
-                repo.createSession(session) { success, sessionId ->
-                    if (success) dismiss()
-                    Log.d("ClassScheduleDialog", "Session created with ID: $selectedRoom")
+                val sessionId = arguments?.getString("sessionId")
+                val roomId = selectedRoom.roomId ?: ""
+
+                if (sessionId != null) {
+                    // 🔄 UPDATE EXISTING SESSION
+                    val sessionRef = FirebaseDatabase.getInstance()
+                        .getReference("rooms")
+                        .child(roomId)
+                        .child("sessions")
+                        .child(sessionId)
+
+                    val updatedData = mapOf(
+                        "subject" to subject,
+                        "startTime" to startTime,
+                        "endTime" to endTime
+                    )
+
+                    sessionRef.updateChildren(updatedData)
+                        .addOnSuccessListener {
+                            dismiss()
+                            Log.d("ClassScheduleDialog", "✅ Session updated successfully.")
+                        }
+                        .addOnFailureListener {
+                            Log.e("ClassScheduleDialog", "❌ Failed to update session: ${it.message}")
+                        }
+                } else {
+                    // 🆕 CREATE NEW SESSION
+                    val session = ClassSession(
+                        roomId = roomId,
+                        subject = subject,
+                        date = "",
+                        startTime = startTime,
+                        endTime = endTime,
+                        allowanceTime = 10,
+                        teacherId = FirebaseAuth.getInstance().currentUser?.uid ?: "",
+                        qrCode = ""
+                    )
+
+                    repo.createSession(session) { success, sessionKey ->
+                        if (success) {
+                            dismiss()
+                            Log.d("ClassScheduleDialog", "✅ New session created with ID: $sessionKey")
+                        }
+                    }
                 }
             } else {
-                Log.e("ClassScheduleDialog", "No room selected!")
+                Log.e("ClassScheduleDialog", "⚠️ No room selected!")
             }
         }
 
 
+
     }
+    companion object {
+        fun newInstance(session: ClassSession): ClassScheduleDialog {
+            val dialog = ClassScheduleDialog()
+            val args = Bundle().apply {
+                putString("sessionId", session.sessionId)
+                putString("roomId", session.roomId)
+                putString("subject", session.subject)
+                putString("startTime", session.startTime)
+                putString("endTime", session.endTime)
+            }
+            dialog.arguments = args
+            return dialog
+        }
+    }
+
 
     override fun onStart() {
         super.onStart()

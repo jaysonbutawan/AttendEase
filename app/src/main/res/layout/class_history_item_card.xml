@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="12dp"
+    android:clickable="true"
+    android:focusable="true"
+    android:foreground="?attr/selectableItemBackground"
+    app:cardCornerRadius="12dp"
+    app:cardElevation="2dp">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="#FAFAFF"
+        android:padding="16dp">
+
+        <!-- Icon Container (Rounded Background) -->
+        <androidx.cardview.widget.CardView
+            android:id="@+id/icon_container"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:backgroundTint="#E6E0FF"
+            app:cardCornerRadius="10dp"
+            app:cardElevation="0dp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent">
+
+            <ImageView
+                android:id="@+id/icon_subject"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:layout_gravity="center"
+                android:src="@drawable/ic_code"
+                app:tint="@color/blue"
+                tools:ignore="ContentDescription"
+                tools:src="@drawable/ic_code" />
+
+        </androidx.cardview.widget.CardView>
+
+        <!-- Subject Title -->
+        <TextView
+            android:id="@+id/text_subject_title"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:layout_marginEnd="8dp"
+            android:textColor="@color/blue"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            app:layout_constraintEnd_toStartOf="@+id/icon_arrow"
+            app:layout_constraintStart_toEndOf="@+id/icon_container"
+            app:layout_constraintTop_toTopOf="parent"
+            tools:text="Data Structures" />
+
+        <!-- Time and Date Details -->
+        <TextView
+            android:id="@+id/text_subject_details"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:layout_marginTop="2dp"
+            android:textColor="#49454F"
+            android:textSize="14sp"
+            app:layout_constraintEnd_toStartOf="@+id/icon_arrow"
+            app:layout_constraintStart_toEndOf="@+id/icon_container"
+            app:layout_constraintTop_toBottomOf="@+id/text_subject_title"
+            tools:text="09:00 AM - 10:30 AM | Dec 25, 2024" />
+
+        <!-- Navigation Arrow -->
+        <ImageView
+            android:id="@+id/icon_arrow"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:src="@drawable/ic_chevron_right"
+            app:layout_constraintBottom_toBottomOf="@+id/text_subject_details"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="@+id/text_subject_title"
+            app:tint="#6750A4"
+            tools:ignore="ContentDescription" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+</androidx.cardview.widget.CardView>

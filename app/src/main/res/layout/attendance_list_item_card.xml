@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    app:cardCornerRadius="16dp"
+    app:cardElevation="4dp"
+    app:cardUseCompatPadding="true"
+    android:clickable="true"
+    android:focusable="true"
+    app:rippleColor="?attr/colorControlHighlight">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="#FAFAFF"
+        android:padding="12dp">
+
+        <!-- Profile Picture (Circular) -->
+        <de.hdodenhof.circleimageview.CircleImageView
+            android:id="@+id/image_student_profile"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            app:civ_border_width="0dp"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            android:src="@drawable/ic_profile"
+            tools:src="@tools:sample/avatars"
+            tools:ignore="ContentDescription" />
+
+        <!-- Student Name -->
+        <TextView
+            android:id="@+id/text_student_name"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:textColor="#1C1B1F"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            app:layout_constraintEnd_toStartOf="@+id/chip_attendance_status"
+            app:layout_constraintStart_toEndOf="@+id/image_student_profile"
+            app:layout_constraintTop_toTopOf="@+id/image_student_profile"
+            app:layout_constraintBottom_toBottomOf="@+id/image_student_profile"
+             />
+
+        <!-- Attendance Status Chip -->
+        <TextView
+            android:id="@+id/chip_attendance_status"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp"
+            android:paddingTop="4dp"
+            android:paddingBottom="4dp"
+            android:textColor="@android:color/white"
+            android:background="@drawable/rounded_green_badge_bg"
+            android:text="present"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:gravity="center"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="@+id/image_student_profile"
+            app:layout_constraintBottom_toBottomOf="@+id/image_student_profile"
+            />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+</com.google.android.material.card.MaterialCardView>

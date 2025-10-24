@@ -9,6 +9,7 @@ import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.attendease.databinding.ManageClassScreenBinding
+import com.example.attendease.teacher.data.model.ClassSession
 import com.example.attendease.teacher.ui.classschedule.ClassScheduleDialog
 import com.example.attendease.teacher.ui.dashboard.MainNavigationActivity
 import com.example.attendease.teacher.ui.session.adapter.SessionAdapter
@@ -47,10 +48,20 @@ class ManageSessionActivity : AppCompatActivity() {
     // ---------------------------
 
     private fun setupRecyclerView() {
-        sessionAdapter = SessionAdapter(emptyList()) { session ->
-            // When "Start Class" button is clicked for a session
-            startSession(session.sessionId, session.roomId)
-        }
+        sessionAdapter = SessionAdapter(
+            sessionList = emptyList(),
+            onStartClassClick = { session ->
+                startSession(session.sessionId, session.roomId)
+            },
+            onEditClick = { session ->
+                // Open edit dialog
+                Toast.makeText(this, "Edit ${session.subject}", Toast.LENGTH_SHORT).show()
+                showEditDialog(session)
+            },
+            onDeleteClick = { session ->
+                deleteSession(session.roomId, session.sessionId)
+            }
+        )
 
         binding.classSessionContainer.apply {
             layoutManager = LinearLayoutManager(this@ManageSessionActivity)
@@ -60,10 +71,18 @@ class ManageSessionActivity : AppCompatActivity() {
 
     private fun observeSessionList() {
         sessionListViewModel.sessions.observe(this) { sessions ->
-            // Update RecyclerView adapter whenever sessions change
-            sessionAdapter = SessionAdapter(sessions) { session ->
-                startSession(session.sessionId, session.roomId)
-            }
+            sessionAdapter = SessionAdapter(
+                sessionList = sessions,
+                onStartClassClick = { session ->
+                    startSession(session.sessionId, session.roomId)
+                },
+                onEditClick = { session ->
+                    showEditDialog(session)
+                },
+                onDeleteClick = { session ->
+                    deleteSession(session.roomId, session.sessionId)
+                }
+            )
             binding.classSessionContainer.adapter = sessionAdapter
             binding.tvClassCount.text = "  ${sessions.size}"
         }
@@ -72,9 +91,9 @@ class ManageSessionActivity : AppCompatActivity() {
             Toast.makeText(this, "Error: $error", Toast.LENGTH_SHORT).show()
         }
 
-        // Load sessions from ViewModel
         sessionListViewModel.loadSessions()
     }
+
 
     @SuppressLint("ClickableViewAccessibility")
     private fun setupButtons() {
@@ -140,6 +159,42 @@ class ManageSessionActivity : AppCompatActivity() {
                 Toast.makeText(this, "Failed to start session.", Toast.LENGTH_SHORT).show()
             }
     }
+    private fun deleteSession(roomId: String?, sessionId: String?) {
+        if (roomId.isNullOrEmpty() || sessionId.isNullOrEmpty()) {
+            Toast.makeText(this, "Invalid session data.", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        // 🔹 Confirmation dialog before deleting
+        androidx.appcompat.app.AlertDialog.Builder(this)
+            .setTitle("Delete Session")
+            .setMessage("Are you sure you want to delete this session? This action cannot be undone.")
+            .setPositiveButton("Delete") { dialog, _ ->
+                val sessionRef = FirebaseDatabase.getInstance()
+                    .getReference("rooms")
+                    .child(roomId)
+                    .child("sessions")
+                    .child(sessionId)
+
+                sessionRef.removeValue()
+                    .addOnSuccessListener {
+                        Toast.makeText(this, "Session deleted successfully.", Toast.LENGTH_SHORT).show()
+                        sessionListViewModel.loadSessions() // Refresh list
+                    }
+                    .addOnFailureListener {
+                        Toast.makeText(this, "Failed to delete session.", Toast.LENGTH_SHORT).show()
+                    }
+
+                dialog.dismiss()
+            }
+            .setNegativeButton("Cancel") { dialog, _ ->
+                dialog.dismiss()
+            }
+            .setCancelable(true)
+            .show()
+    }
+
+
 
     /** Opens the SessionActivity and passes session details. */
     private fun openSessionActivity(roomId: String?, sessionId: String?) {
@@ -155,4 +210,9 @@ class ManageSessionActivity : AppCompatActivity() {
         val dialog = ClassScheduleDialog()
         dialog.show(supportFragmentManager, "ClassScheduleDialog")
     }
+    private fun showEditDialog(session: ClassSession) {
+        val dialog = ClassScheduleDialog.newInstance(session)
+        dialog.show(supportFragmentManager, "EditClassDialog")
+    }
+
 }

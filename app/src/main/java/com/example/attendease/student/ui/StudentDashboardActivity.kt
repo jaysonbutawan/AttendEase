@@ -13,6 +13,7 @@ import com.example.attendease.student.helper.SessionHelper
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.*
 import kotlinx.coroutines.*
+import kotlinx.coroutines.tasks.await
 
 class StudentDashboardActivity : AppCompatActivity() {
 
@@ -72,10 +73,74 @@ class StudentDashboardActivity : AppCompatActivity() {
                     loadFragment("scan")
                 }
                 "Joined" -> {
-                    loadFragment("joinClass")
+                    scope.launch {
+                        try {
+                            val database = FirebaseDatabase.getInstance().reference
+                            val roomsRef = database.child("rooms")
+                            val today = java.text.SimpleDateFormat("yyyy-MM-dd").format(java.util.Date())
+
+                            // 🔹 Get the current live class from SessionHelper
+                            val sessions = SessionHelper.getMatchedSessions()
+                            val liveClass = sessions.firstOrNull { it.status == "Live" }
+
+                            if (liveClass == null) {
+                                Toast.makeText(this@StudentDashboardActivity, "No active session found.", Toast.LENGTH_SHORT).show()
+                                return@launch
+                            }
+
+                            // 🔹 Find room ID (by comparing name/roomName)
+                            val roomSnapshot = roomsRef.get().await()
+                            var foundRoomId: String? = null
+                            for (room in roomSnapshot.children) {
+                                val name1 = room.child("name").getValue(String::class.java)
+                                val name2 = room.child("roomName").getValue(String::class.java)
+                                if (name1 == liveClass.room || name2 == liveClass.room) {
+                                    foundRoomId = room.key
+                                    break
+                                }
+                            }
+
+                            if (foundRoomId == null) {
+                                Toast.makeText(this@StudentDashboardActivity, "Room not found.", Toast.LENGTH_SHORT).show()
+                                return@launch
+                            }
+
+                            val sessionId = liveClass.sessionId
+                            val currentUser = FirebaseAuth.getInstance().currentUser ?: return@launch
+
+                            // 🔹 Get latest attendance info
+                            val attendanceRef = database
+                                .child("rooms")
+                                .child(foundRoomId)
+                                .child("sessions")
+                                .child(sessionId)
+                                .child("attendance")
+                                .child(today)
+                                .child(currentUser.uid)
+
+                            val attendanceSnap = attendanceRef.get().await()
+                            val timeScanned = attendanceSnap.child("timeScanned").getValue(String::class.java) ?: "N/A"
+
+                            // 🔹 Prepare arguments for JoinClassFragmentActivity
+                            val dataToPass = Bundle().apply {
+                                putString("roomId", foundRoomId)
+                                putString("sessionId", sessionId)
+                                putString("timeScanned", timeScanned)
+                                putString("dateScanned", today)
+                            }
+
+                            // ✅ Navigate to JoinClassFragmentActivity with parameters
+                            loadFragment("joinClass", dataToPass)
+
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                            Toast.makeText(this@StudentDashboardActivity, "Failed to load session details.", Toast.LENGTH_SHORT).show()
+                        }
+                    }
                 }
             }
         }
+
 
 
         // ✅ Bottom navigation
@@ -174,7 +239,7 @@ class StudentDashboardActivity : AppCompatActivity() {
     /**
      * 🔹 Manage fragments
      */
-    fun loadFragment(fragmentTag: String) {
+    fun loadFragment(fragmentTag: String, args: Bundle? = null) {
         val transaction = supportFragmentManager.beginTransaction()
 
         // Hide all fragments
@@ -213,10 +278,18 @@ class StudentDashboardActivity : AppCompatActivity() {
                 } else transaction.show(historyFragment!!)
             }
             "joinClass" -> {
-                if (joinClassFragment == null) {
-                    joinClassFragment = JoinClassFragmentActivity()
+                if (joinClassFragment == null || args != null) { // Force recreation/update if new args are provided
+                    // Remove old instance if it exists and we're passing new data
+                    joinClassFragment?.let { transaction.remove(it) }
+
+                    // Create new instance and apply arguments
+                    joinClassFragment = JoinClassFragmentActivity().apply {
+                        arguments = args // Set the arguments passed from the scan logic
+                    }
                     transaction.add(R.id.fragmentContainer, joinClassFragment, "joinClass")
-                } else transaction.show(joinClassFragment)
+                } else {
+                    transaction.show(joinClassFragment)
+                }
             }
         }
 
@@ -224,8 +297,9 @@ class StudentDashboardActivity : AppCompatActivity() {
     }
 
     private fun refreshDashboard() {
+        updateLiveSessionStatus()
         binding.swipeRefresh.isRefreshing = true
-            updateLiveSessionStatus()
+
         }
 
 

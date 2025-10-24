@@ -38,4 +38,25 @@ class AttendanceListViewModel : ViewModel() {
             }
         )
     }
+    fun fetchAttendanceList(roomId: String?, sessionId: String, date: String) {
+        if (roomId == null) {
+            _error.postValue("Missing roomId — cannot load attendance.")
+            return
+        }
+
+        repository.getAttendanceByDate(
+            roomId = roomId,
+            sessionId = sessionId,
+            date = date, // ✅ pass selected date
+            onResult = { records ->
+                _attendanceList.postValue(records)
+            },
+            onError = { err ->
+                _error.postValue(err)
+            }
+        )
+    }
+
+
+
 }

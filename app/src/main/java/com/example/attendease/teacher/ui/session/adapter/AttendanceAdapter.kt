@@ -25,7 +25,7 @@ class AttendanceAdapter(
             // ✅ Status text
             tvStatusText.text = when (record.timeScanned) {
                 null -> "No scan record"
-                else -> "Checked in at ${record.timeScanned}"
+                else -> "Scanned at ${record.timeScanned}"
             }
 
             // ✅ Badge (present / absent)

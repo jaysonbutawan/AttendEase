@@ -417,10 +417,11 @@ class ScanFragmentActivity : Fragment() {
                     val dataToPass = Bundle().apply {
                         putString("status", finalStatus)
                         putString("timeScanned", currentTime)
-                        // Add other necessary session info to the Bundle
                         putString("roomId", roomId)
                         putString("sessionId", sessionId)
+                        putString("dateScanned", currentDate) // ✅ Add this line
                     }
+
 
                     // 3. Navigate to the confirmation fragment (JoinClassFragmentActivity)
                     // Assuming you are using SafeArgs or standard Fragment transactions
@@ -449,7 +450,8 @@ class ScanFragmentActivity : Fragment() {
     private fun navigateToJoinClass(dataToPass: Bundle) {
         val joinClassFragment = JoinClassFragmentActivity()
         joinClassFragment.arguments = dataToPass
-        (requireActivity() as StudentDashboardActivity).loadFragment("joinClass")
+
+        (requireActivity() as StudentDashboardActivity).loadFragment("joinClass", dataToPass)
 
     }
 

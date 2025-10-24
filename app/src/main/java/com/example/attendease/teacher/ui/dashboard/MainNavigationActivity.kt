@@ -13,6 +13,8 @@ import com.example.attendease.teacher.ui.session.ui.ManageSessionActivity
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.*
 import androidx.core.graphics.toColorInt
+import com.example.attendease.teacher.ui.session.ui.AttendanceReportActivity
+import com.example.attendease.teacher.ui.session.ui.HistorySubjectActivity
 
 class MainNavigationActivity : AppCompatActivity() {
 
@@ -78,7 +80,7 @@ class MainNavigationActivity : AppCompatActivity() {
         }
 
         setupCardToggle(cvAttendanceReport) {
-            startActivity(Intent(this@MainNavigationActivity, AttendanceReportActivity::class.java))
+            startActivity(Intent(this@MainNavigationActivity, HistorySubjectActivity::class.java))
         }
 
         profileImage.setOnClickListener {

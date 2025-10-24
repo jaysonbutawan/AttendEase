@@ -11,4 +11,5 @@ data class ClassSession(
     var allowanceTime: Int? = null,
     var teacherId: String? = null,
     var qrCode: String? = null,
+    var status: String? = null
 )
