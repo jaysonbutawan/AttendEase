@@ -154,177 +154,202 @@ class ScanFragmentActivity : Fragment() {
     @SuppressLint("MissingPermission")
     private fun getLocation(onResult: (Location?) -> Unit) {
         val fused = LocationServices.getFusedLocationProviderClient(requireContext())
-        val request = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 2000L)
-            .setMaxUpdates(5)
-            .setMinUpdateIntervalMillis(1000L)
-            .setWaitForAccurateLocation(true)
-            .build()
 
-        val callback = object : LocationCallback() {
-            private val collected = mutableListOf<Location>()
-            override fun onLocationResult(result: LocationResult) {
-                collected += result.locations
-                val best = collected.minByOrNull { it.accuracy }
-                if (best != null && best.accuracy <= 10f || collected.size >= 5) {
-                    fused.removeLocationUpdates(this)
+        // 1. Try to get the last known location first (FASTEST)
+        fused.lastLocation.addOnSuccessListener { lastLocation ->
+            // Check if last location is recent (within 30 seconds) and reasonably accurate (under 50m)
+            val thirtySecondsAgo = System.currentTimeMillis() - 30000
+            if (lastLocation != null && lastLocation.time > thirtySecondsAgo && lastLocation.accuracy < 50f) {
+                Log.d("USER_LOCATION_LOG", "Using fast Last Known Location.")
+                onResult(lastLocation)
+                return@addOnSuccessListener
+            }
+
+            // 2. If last location is not good, request a quick single update (FASTER)
+            // Request a single, high-priority update with a short timeout.
+            val request = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 500L)
+                .setMaxUpdates(1)
+                .setMinUpdateIntervalMillis(500L)
+                .setDurationMillis(5000L) // Stop trying after 5 seconds to prevent long waits
+                .build()
+
+            val callback = object : LocationCallback() {
+                override fun onLocationResult(result: LocationResult) {
+                    fused.removeLocationUpdates(this) // Stop updates after the first result
+                    val bestLocation = result.locations.minByOrNull { it.accuracy }
+
                     Log.d(
                         "USER_LOCATION_LOG",
                         """ 
-                    • Latitude: ${best?.latitude}
-                    • Longitude: ${best?.longitude}
-                    • Accuracy: ${best?.accuracy} meters
-                    • Provider: ${best?.provider}
-                    • Timestamp: ${SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date(best?.time ?: 0))}
-                    """.trimIndent()
+                • Requested Update Location (Quick Fix).
+                • Latitude: ${bestLocation?.latitude}
+                • Longitude: ${bestLocation?.longitude}
+                • Accuracy: ${bestLocation?.accuracy} meters
+                • Provider: ${bestLocation?.provider}
+                • Timestamp: ${SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date(bestLocation?.time ?: 0))}
+                """.trimIndent()
                     )
-                    onResult(best)
+                    onResult(bestLocation)
                 }
             }
+            fused.requestLocationUpdates(request, callback, Looper.getMainLooper())
         }
-        fused.requestLocationUpdates(request, callback, Looper.getMainLooper())
+            .addOnFailureListener {
+                // Handle cases where even getLastLocation fails (e.g., location services disabled)
+                Log.e("LOCATION_ERROR", "Failed to get last location: ${it.message}")
+                onResult(null)
+            }
     }
 
+
+    // --- Optimized handleQrScanned: Faster flow and exit conditions ---
     @SuppressLint("MissingPermission")
     private fun handleQrScanned(qrValue: String) {
         if (!scanningEnabled) return
         scanningEnabled = false
-
         showLoading(true)
 
+        // Helper function to reset state on failure or end of flow
+        fun resetState(message: String? = null) {
+            if (message != null) {
+                Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
+            }
+            scanningEnabled = true
+            binding.previewView.visibility = View.VISIBLE // Re-enable the scanner view
+            showLoading(false)
+        }
+
+        // --- OPTIMIZATION POINT 1: Efficiently locate the session and break the loop ---
         database.get().addOnSuccessListener { snapshot ->
             var matchFound = false
+            var sessionDetails: Pair<String, String>? = null // Pair of <roomId, sessionId>
+
+            // Client-side scan is still the main bottleneck due to the nested DB structure.
+            // We ensure we break as soon as possible.
             for (roomSnapshot in snapshot.children) {
                 val sessions = roomSnapshot.child("sessions")
                 for (session in sessions.children) {
                     val qrValid = session.child("qrValid").getValue(Boolean::class.java) ?: false
                     val storedQR = session.child("qrCode").getValue(String::class.java)
-                    val startTime = session.child("startTime").getValue(String::class.java) ?: ""
-                    val allowanceTime = session.child("allowanceTime").getValue(Int::class.java) ?: 0
-                    val sessionId = session.key ?: continue
-                    val roomId = roomSnapshot.key ?: continue
 
                     if (qrValid && qrValue == storedQR) {
+                        sessionDetails = Pair(roomSnapshot.key!!, session.key!!)
                         matchFound = true
-                        val attendanceRef = database.child(roomId)
-                            .child("sessions")
-                            .child(sessionId)
-                            .child("attendance")
-                            .child(FirebaseAuth.getInstance().currentUser?.uid ?: "NO_USER")
-
-                        attendanceRef.get().addOnSuccessListener { attendanceSnapshot ->
-                            val sessionStatus = session.child("sessionStatus").getValue(String::class.java) ?: "ended"
-
-                            // Check if session is ongoing
-                            if (sessionStatus != "started") {
-                                Log.d("SCAN_FLOW", "Session not ongoing — skipping markAttendance")
-                                Toast.makeText(requireContext(), "Session has ended. Scanning disabled.", Toast.LENGTH_SHORT).show()
-                                scanningEnabled = false
-                                binding.previewView.visibility = View.GONE
-                                return@addOnSuccessListener
-                            }
-
-                            // Check if already scanned
-                            if (attendanceSnapshot.exists()) {
-                                Log.d("SCAN_FLOW", "Attendance already exists — skipping markAttendance")
-                                Toast.makeText(requireContext(), "You already scanned for this class.", Toast.LENGTH_LONG).show()
-                                scanningEnabled = false
-                                binding.previewView.visibility = View.GONE
-                                showLoading(false)
-                                return@addOnSuccessListener
-                            }
-
-                            val polygonPoints = mutableListOf<LatLng>()
-                            val polygonSnapshot = roomSnapshot.child("polygon")
-                            for (point in polygonSnapshot.children) {
-                                val lat = point.child("lat").getValue(Double::class.java)
-                                val lng = point.child("lng").getValue(Double::class.java)
-                                if (lat != null && lng != null) polygonPoints.add(LatLng(lat, lng))
-                            }
-
-                            getLocation { location ->
-                                if (location == null) {
-                                    Toast.makeText(requireContext(), "Unable to get location.", Toast.LENGTH_SHORT).show()
-                                    scanningEnabled = true
-                                    return@getLocation
-                                }
-
-                                val studentLatLng = LatLng(location.latitude, location.longitude)
-                                val gpsAccuracy = location.accuracy // meters
-
-                                // --- Compute distance from the polygon (approximate classroom area) ---
-                                val distance = LocationValidator.getDistanceFromPolygon(studentLatLng, polygonPoints)
-
-                                // --- Buffered Polygon Check (for safety margin) ---
-                                val isInsideBuffer = studentLatLng.let {
-                                    LocationValidator.isInsidePolygon(it, polygonPoints, toleranceMeters = 50f)
-                                }
-
-                                Log.d(
-                                    "USER_LOCATION_LOG",
-                                    """
-        Distance: $distance meters
-        Accuracy: $gpsAccuracy meters
-        QR Valid: $qrValid
-        Inside Buffer: $isInsideBuffer
-        """.trimIndent()
-                                )
-
-                                // --- Determine validation result ---
-                                val validationResult = when {
-                                    qrValid && gpsAccuracy > 30 -> "present"
-                                    distance <= 15 && gpsAccuracy <= 30 -> "present"
-                                    else -> "partial"
-                                }
-
-                                // --- Set confidence label ---
-                                val confidence = when (validationResult) {
-                                    "present" -> if (gpsAccuracy <= 30) "High" else "Confirmed by QR"
-                                    "partial" -> "Partial — low GPS accuracy"
-                                    else -> "Low / Needs review"
-                                }
-
-                                // --- Handle result ---
-                                when (validationResult) {
-                                    "present" -> markAttendance(
-                                        roomId,
-                                        sessionId,
-                                        startTime,
-                                        allowanceTime,
-                                        isInsideBuffer,
-                                        confidence,
-                                        validationResult
-                                    )
-
-
-
-                                    else -> {
-                                        markAttendance(
-                                            roomId,
-                                            sessionId,
-                                            startTime,
-                                            allowanceTime,
-                                            isInsideBuffer,
-                                            confidence,
-                                            validationResult
-                                        )
-
-
-                                    }
-                                }
-                            }
-
-                        }
                         break
                     }
                 }
                 if (matchFound) break
             }
 
-            if (!matchFound) {
-                Toast.makeText(requireContext(), "Invalid QR code", Toast.LENGTH_SHORT).show()
-                scanningEnabled = true
+            if (!matchFound || sessionDetails == null) {
+                resetState("Invalid QR code")
+                return@addOnSuccessListener
+            }
+
+            // Deconstruct found details and retrieve necessary snapshots
+            val (roomId, sessionId) = sessionDetails
+            val roomSnapshot = snapshot.child(roomId)
+            val session = roomSnapshot.child("sessions").child(sessionId)
+
+            val sessionStatus = session.child("sessionStatus").getValue(String::class.java) ?: "ended"
+            val startTime = session.child("startTime").getValue(String::class.java) ?: ""
+            val allowanceTime = session.child("allowanceTime").getValue(Int::class.java) ?: 0
+
+            // --- OPTIMIZATION POINT 2: Quick exit if session has ended ---
+            if (sessionStatus != "started") {
+                resetState("Session has ended. Scanning disabled.")
+                return@addOnSuccessListener
+            }
+
+            val attendanceRef = database.child(roomId)
+                .child("sessions")
+                .child(sessionId)
+                .child("attendance")
+                .child(FirebaseAuth.getInstance().currentUser?.uid ?: "NO_USER")
+
+            // --- OPTIMIZATION POINT 3: Check existing attendance (faster network call than polygon + GPS) ---
+            attendanceRef.get().addOnSuccessListener { attendanceSnapshot ->
+                if (attendanceSnapshot.exists()) {
+                    resetState("You already scanned for this class.")
+                    return@addOnSuccessListener
+                }
+
+                // Location-based checks start here (inherently slow part)
+                val polygonPoints = mutableListOf<LatLng>()
+                val polygonSnapshot = roomSnapshot.child("polygon")
+                for (point in polygonSnapshot.children) {
+                    val lat = point.child("lat").getValue(Double::class.java)
+                    val lng = point.child("lng").getValue(Double::class.java)
+                    if (lat != null && lng != null) polygonPoints.add(LatLng(lat, lng))
+                }
+                Log.d("POLYGON_LOG", buildString {
+                    appendLine("════════════════════════════════════════")
+                    appendLine("🏫 Room Polygon Points (${polygonPoints.size}):")
+                    polygonPoints.forEachIndexed { index, point ->
+                        appendLine("  • Point ${index + 1}: Lat=${point.latitude}, Lng=${point.longitude}")
+                    }
+                    appendLine("════════════════════════════════════════")
+                })
+
+
+                // --- OPTIMIZATION POINT 4: Call optimized getLocation ---
+                getLocation { location ->
+                    if (location == null) {
+                        resetState("Unable to get location.")
+                        return@getLocation
+                    }
+
+                    val studentLatLng = LatLng(location.latitude, location.longitude)
+                    val gpsAccuracy = location.accuracy // meters
+
+                    // Validation logic (Fast computations)
+                    val distance = LocationValidator.getDistanceFromPolygon(studentLatLng, polygonPoints)
+                    val isInsideBuffer = LocationValidator.isInsidePolygon(studentLatLng, polygonPoints, toleranceMeters = 50f)
+
+                    Log.d(
+                        "USER_LOCATION_LOG",
+                        """
+    Validation Details:
+    Distance from Polygon: $distance meters
+    GPS Accuracy: $gpsAccuracy meters
+    Inside 50m Buffer: $isInsideBuffer
+    """.trimIndent()
+                    )
+
+                    // Validation logic: Prioritize acceptable accuracy (e.g., <= 30m)
+                    val validationResult = when {
+                        gpsAccuracy > 30f -> "partial" // Low accuracy, needs review
+                        distance <= 15f -> "present"   // Good accuracy, close to polygon
+                        else -> "partial"             // Good accuracy, but too far from polygon
+                    }
+
+                    val confidence = when (validationResult) {
+                        "present" -> if (gpsAccuracy <= 15f) "High" else "Medium"
+                        "partial" -> "Partial — Low accuracy or Outside Geo-Fence"
+                        else -> "Low / Needs review"
+                    }
+
+                    // Final markAttendance call
+                    markAttendance(
+                        roomId,
+                        sessionId,
+                        startTime,
+                        allowanceTime,
+                        isInsideBuffer,
+                        confidence,
+                        validationResult
+                    )
+
+                    // Final state reset (success handled in markAttendance, but ensure loading stops)
+                    showLoading(false)
+                    binding.previewView.visibility = View.GONE
+                }
             }
         }
+            .addOnFailureListener { e ->
+                Log.e("SCAN_FLOW", "Database fetch failed: ${e.message}")
+                resetState("Failed to retrieve session data from database.")
+            }
     }
 
     private fun markAttendance(
