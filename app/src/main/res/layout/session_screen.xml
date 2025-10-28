@@ -150,9 +150,9 @@
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
-                    android:orientation="vertical"
                     android:background="#3396D3"
                     android:gravity="center"
+                    android:orientation="vertical"
                     android:padding="8dp">
 
                     <TextView
@@ -161,17 +161,17 @@
                         android:layout_height="wrap_content"
                         android:text="Absent"
                         android:textColor="@android:color/white"
-                        android:textStyle="bold"
-                        android:textSize="14sp"/>
+                        android:textSize="14sp"
+                        android:textStyle="bold" />
 
                     <TextView
                         android:id="@+id/absentCount"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="5"
-                        android:textStyle="bold"
                         android:textColor="@android:color/white"
-                        android:textSize="18sp"/>
+                        android:textSize="18sp"
+                        android:textStyle="bold" />
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
             <androidx.cardview.widget.CardView

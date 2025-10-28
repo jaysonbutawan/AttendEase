@@ -13,7 +13,7 @@ import com.example.attendease.teacher.ui.session.ui.ManageSessionActivity
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.*
 import androidx.core.graphics.toColorInt
-import com.example.attendease.teacher.ui.session.ui.AttendanceReportActivity
+import com.example.attendease.teacher.ui.profile.EditProfileBottomSheet
 import com.example.attendease.teacher.ui.session.ui.HistorySubjectActivity
 
 class MainNavigationActivity : AppCompatActivity() {
@@ -76,7 +76,33 @@ class MainNavigationActivity : AppCompatActivity() {
 
     private fun setupClickListeners(name: String?, email: String?, imageUrl: String?) = with(binding) {
         setupCardToggle(cvManageClasses) {
-            startActivity(Intent(this@MainNavigationActivity, ManageSessionActivity::class.java))
+            val currentName = binding.tvUserName.text.toString().trim()
+            val firebaseName = FirebaseAuth.getInstance().currentUser?.displayName
+            val isNameIncomplete = currentName.isEmpty() || currentName == firebaseName
+
+            if (isNameIncomplete) {
+                // Show dialog asking to update name
+                androidx.appcompat.app.AlertDialog.Builder(this@MainNavigationActivity)
+                    .setTitle("Update Required")
+                    .setMessage("Please update your name with your institutional name before creating a class.")
+                    .setPositiveButton("Update Now") { dialog, _ ->
+                        // Open Edit Profile BottomSheet
+                        val editProfileSheet = EditProfileBottomSheet.newInstance(
+                            currentName,
+                            FirebaseAuth.getInstance().currentUser?.email,
+                            FirebaseAuth.getInstance().currentUser?.photoUrl?.toString()
+                        )
+                        editProfileSheet.show(supportFragmentManager, "EditProfileBottomSheet")
+                        dialog.dismiss()
+                    }
+                    .setNegativeButton("Cancel") { dialog, _ ->
+                        dialog.dismiss()
+                    }
+                    .setCancelable(false)
+                    .show()
+            } else {
+                startActivity(Intent(this@MainNavigationActivity, ManageSessionActivity::class.java))
+            }
         }
 
         setupCardToggle(cvAttendanceReport) {
@@ -92,6 +118,7 @@ class MainNavigationActivity : AppCompatActivity() {
             startActivity(intent)
         }
     }
+
 
     private fun setupCardToggle(
         cardView: CardView,

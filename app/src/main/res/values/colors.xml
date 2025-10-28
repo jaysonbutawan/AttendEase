@@ -39,6 +39,7 @@
     <color name="green_badge">#28A745</color>
     <color name="white_alpha_50">#80FFFFFF</color>
     <color name="black_light">#333333</color>
+    <color name="yellow">#FFC50F</color>
     <color name="profile_border_color">#FFBB86FC</color>
 
 </resources>

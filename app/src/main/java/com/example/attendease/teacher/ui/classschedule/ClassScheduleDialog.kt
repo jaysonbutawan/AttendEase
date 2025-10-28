@@ -52,6 +52,9 @@ class ClassScheduleDialog : DialogFragment() {
             binding.endTimePicker.setText(args.getString("endTime"))
             binding.btnSchedule.text = if (sessionId != null) "Update Session" else "Create Session"
         }
+        binding.btnClose.setOnClickListener {
+            dismiss()
+        }
 
         // Initialize ViewModel
         viewModel = ViewModelProvider(requireActivity())[RoomListViewModel::class.java]

@@ -20,9 +20,7 @@ class ClassHistoryAdapter(
         @SuppressLint("SetTextI18n")
         fun bind(session: ClassSession) {
             with(binding) {
-                textSubjectTitle.text = session.subject ?: "Unknown Subject"
 
-                // Convert date format from "yyyy-MM-dd" → "MMMM dd, yyyy"
                 val formattedDate = formatDate(session.date)
 
                 val time = "${session.startTime ?: "N/A"} - ${session.endTime ?: "N/A"}"

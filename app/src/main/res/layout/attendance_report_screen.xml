@@ -8,22 +8,38 @@
     android:padding="16dp"
     tools:context=".teacher.ui.session.ui.AttendanceReportActivity">
 
-    <!-- Header: Attendance Reports -->
-    <TextView
-        android:id="@+id/cvAttendanceReport"
-        android:layout_width="wrap_content"
+
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/classInfoCard"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Attendance Reports"
-        android:gravity="center"
-        android:textColor="#000000"
-        android:textSize="24sp"
-        android:textStyle="bold"
-        app:layout_constraintStart_toStartOf="parent"
+        android:layout_marginHorizontal="16dp"
+        app:cardBackgroundColor="@android:color/white"
+        app:cardCornerRadius="16dp"
+        app:cardElevation="4dp"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.028"
-        android:layout_marginTop="8dp"
-        tools:layout_editor_absoluteX="16dp" />
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/student_rounded_button"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <TextView
+                android:id="@+id/tvClassName"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:text="Graphic Design Fundamentals"
+                android:textColor="@android:color/white"
+                android:textSize="22sp"
+                android:textStyle="bold" />
+
+        </LinearLayout>
+    </com.google.android.material.card.MaterialCardView>
     <EditText
         android:id="@+id/edit_search_subject"
         android:layout_width="0dp"
@@ -40,7 +56,7 @@
         android:elevation="2dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/cvAttendanceReport"
+        app:layout_constraintTop_toBottomOf="@+id/classInfoCard"
         tools:ignore="Autofill,LabelFor,TextFields" />
 
     <!-- Sub-Header: Class History -->

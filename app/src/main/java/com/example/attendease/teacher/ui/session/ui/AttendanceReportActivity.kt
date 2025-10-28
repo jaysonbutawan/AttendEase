@@ -27,8 +27,16 @@ class AttendanceReportActivity : AppCompatActivity() {
 
         setupRecyclerView()
 
+        // ✅ Get selected subject *inside* onCreate()
         val selectedSubject = intent.getStringExtra("selectedSubject")
         Log.d("AttendanceReport", "🎯 Selected subject: $selectedSubject")
+
+        // ✅ Display it in the card
+        if (!selectedSubject.isNullOrEmpty()) {
+            binding.tvClassName.text = selectedSubject
+        } else {
+            binding.tvClassName.text = "No subject selected"
+        }
 
         observeViewModel(selectedSubject)
         viewModel.fetchClassHistory()
@@ -96,5 +104,4 @@ class AttendanceReportActivity : AppCompatActivity() {
         }
         startActivity(intent)
     }
-
 }

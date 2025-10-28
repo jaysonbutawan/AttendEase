@@ -8,13 +8,13 @@ import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.attendease.databinding.ActivityAttendanceListBinding
-import com.example.attendease.teacher.ui.session.adapter.AttendanceListAdapter
+import com.example.attendease.teacher.ui.session.adapter.AttendanceAdapter
 import com.example.attendease.teacher.ui.session.viewmodel.AttendanceListViewModel
 
 class AttendanceListActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityAttendanceListBinding
-    private lateinit var adapter: AttendanceListAdapter
+    private lateinit var adapter: AttendanceAdapter
     private val viewModel: AttendanceListViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -46,7 +46,7 @@ class AttendanceListActivity : AppCompatActivity() {
     }
 
     private fun setupRecyclerView() {
-        adapter = AttendanceListAdapter(emptyList())
+        adapter = AttendanceAdapter(emptyList())
         binding.recyclerStudentList.layoutManager = LinearLayoutManager(this)
         binding.recyclerStudentList.adapter = adapter
     }

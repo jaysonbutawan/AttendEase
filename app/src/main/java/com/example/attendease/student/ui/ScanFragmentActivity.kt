@@ -2,6 +2,7 @@ package com.example.attendease.student.ui
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.app.AlertDialog
 import android.location.Location
 import android.os.Bundle
 import android.os.Looper
@@ -315,6 +316,19 @@ class ScanFragmentActivity : Fragment() {
     Inside 50m Buffer: $isInsideBuffer
     """.trimIndent()
                     )
+
+                    if (distance > 100f) {
+                        AlertDialog.Builder(requireContext())
+                            .setTitle("Too Far Away")
+                            .setMessage("You are ${distance.toInt()} meters far from the session . Please move closer and try scanning again.")
+                            .setPositiveButton("OK") { dialog, _ ->
+                                dialog.dismiss()
+                                resetState()
+                            }
+                            .setCancelable(false)
+                            .show()
+                        return@getLocation
+                    }
 
                     // Validation logic: Prioritize acceptable accuracy (e.g., <= 30m)
                     val validationResult = when {

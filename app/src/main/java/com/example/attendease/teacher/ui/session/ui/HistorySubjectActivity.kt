@@ -27,7 +27,7 @@ class HistorySubjectActivity : AppCompatActivity() {
 
         setupRecyclerView()
         observeViewModel()
-        viewModel.loadSessions() // ✅ Fetch sessions from Firebase
+        viewModel.loadSessions()
     }
 
     private fun setupRecyclerView() {

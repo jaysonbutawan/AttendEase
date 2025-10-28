@@ -5,6 +5,7 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import com.example.attendease.teacher.data.model.AttendanceRecord
 import com.example.attendease.teacher.data.repositories.SessionRepository
+import com.google.firebase.database.FirebaseDatabase
 
 class AttendanceListViewModel : ViewModel() {
 
@@ -38,6 +39,7 @@ class AttendanceListViewModel : ViewModel() {
             }
         )
     }
+
     fun fetchAttendanceList(roomId: String?, sessionId: String, date: String) {
         if (roomId == null) {
             _error.postValue("Missing roomId — cannot load attendance.")
@@ -57,6 +59,60 @@ class AttendanceListViewModel : ViewModel() {
         )
     }
 
+    fun updateAttendanceStatus(roomId: String?, sessionId: String?, date: String?, record: AttendanceRecord?) {
+        if (roomId.isNullOrBlank() || sessionId.isNullOrBlank() || date.isNullOrBlank() || record == null) {
+            _error.postValue("Missing data: room, session, date, or record is invalid.")
+            return
+        }
 
+        val studentId = record.id ?: run {
+            _error.postValue("Invalid student ID")
+            return
+        }
+
+        val studentRef = FirebaseDatabase.getInstance()
+            .getReference("rooms")
+            .child(roomId)
+            .child("sessions")
+            .child(sessionId)
+            .child("attendance")
+            .child(date)
+            .child(studentId)
+
+        studentRef.get().addOnSuccessListener { snapshot ->
+            if (snapshot.exists()) {
+                val currentData = snapshot.getValue(AttendanceRecord::class.java)
+                if (currentData != null) {
+                    // Decide status based on lateDuration
+                    val newStatus = if ((currentData.lateDuration ?: 0) > 0) {
+                        "Late"
+                    } else {
+                        "Present"
+                    }
+
+                    studentRef.child("status").setValue(newStatus)
+                        .addOnSuccessListener {
+                            val updatedList = attendanceList.value?.map {
+                                if (it.id == studentId) it.copy(status = newStatus) else it
+                            } ?: emptyList()
+                            _attendanceList.postValue(updatedList)
+                        }
+                        .addOnFailureListener {
+                            _error.postValue("Failed to update status for $studentId")
+                        }
+                } else {
+                    _error.postValue("No attendance data found for this student.")
+                }
+            } else {
+                _error.postValue("Attendance record not found in database.")
+            }
+        }.addOnFailureListener {
+            _error.postValue("Error retrieving student data: ${it.message}")
+        }
+    }
 
 }
+
+
+
+

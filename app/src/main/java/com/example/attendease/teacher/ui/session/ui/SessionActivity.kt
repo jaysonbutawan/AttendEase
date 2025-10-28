@@ -3,17 +3,23 @@ package com.example.attendease.teacher.ui.session.ui
 import android.graphics.Bitmap
 import android.os.Bundle
 import android.os.Handler
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.viewModels
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContentProviderCompat.requireContext
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.attendease.databinding.SessionScreenBinding
+import com.example.attendease.teacher.data.model.AttendanceRecord
 import com.example.attendease.teacher.data.model.QrUtils
 import com.example.attendease.teacher.data.repositories.SessionRepository
 import com.example.attendease.teacher.ui.session.adapter.AttendanceAdapter
 import com.example.attendease.teacher.ui.session.viewmodel.AttendanceListViewModel
 import com.example.attendease.teacher.ui.session.viewmodel.QrSessionViewModel
 import com.example.attendease.teacher.ui.session.viewmodel.SessionViewModelFactory
+import com.google.android.gms.tasks.Task
+import com.google.android.gms.tasks.Tasks
 import com.google.firebase.database.FirebaseDatabase
 
 class SessionActivity : AppCompatActivity() {
@@ -55,6 +61,11 @@ class SessionActivity : AppCompatActivity() {
             showAttendanceBottomSheet("Partial")
         }
 
+        attendanceAdapter = AttendanceAdapter(emptyList()) { record ->
+            onConfirmPresentClick(record)
+        }
+
+
 
         // Get intent data
         sessionId = intent.getStringExtra("sessionId")
@@ -75,12 +86,15 @@ class SessionActivity : AppCompatActivity() {
     // ---------------------------
 
     private fun setupRecyclerView() {
-        attendanceAdapter = AttendanceAdapter(emptyList())
+        attendanceAdapter = AttendanceAdapter(emptyList()) { record ->
+            onConfirmPresentClick(record)
+        }
         binding.studentAttendanceRecyclerView.apply {
             layoutManager = LinearLayoutManager(this@SessionActivity)
             adapter = attendanceAdapter
         }
     }
+
 
     private fun setupViewModels() {
         val repository = SessionRepository()
@@ -132,30 +146,30 @@ class SessionActivity : AppCompatActivity() {
             return
         }
 
+        // Load initial attendance data
         attendanceListViewModel.loadAttendance(room, session)
 
+        // Observe LiveData from ViewModel
         attendanceListViewModel.attendanceList.observe(this) { attendanceList ->
+            // Update RecyclerView
             attendanceAdapter.updateData(attendanceList)
 
-            val presentCount = attendanceList.count { it.status?.lowercase() == "present" }
-            val lateCount =
-                attendanceList.count { it.status?.lowercase() == "late" || it.status?.lowercase() == "partial" }
+            // Update counts in UI
+            val presentCount = attendanceList.count { it.status?.lowercase() == "present" || it.status?.lowercase() == "late" }
+            val lateCount = attendanceList.count {   it.status?.lowercase() == "partial" }
             val absentCount = attendanceList.count { it.status?.lowercase() == "absent" }
 
-            // ✅ Update UI text views
             binding.presentCount.text = "$presentCount"
             binding.tvOutsideCount.text = "$lateCount"
             binding.absentCount.text = "$absentCount"
+        }
 
-            attendanceListViewModel.attendanceList.observe(this) { attendanceList ->
-                attendanceAdapter.updateData(attendanceList)
-            }
-
-            attendanceListViewModel.error.observe(this) { error ->
-                Toast.makeText(this, "Error: $error", Toast.LENGTH_SHORT).show()
-            }
+        // Observe errors separately
+        attendanceListViewModel.error.observe(this) { error ->
+            Toast.makeText(this, "Error: $error", Toast.LENGTH_SHORT).show()
         }
     }
+
 
     // ---------------------------
     // End Session Handling
@@ -176,22 +190,123 @@ class SessionActivity : AppCompatActivity() {
             .child("sessions")
             .child(session)
 
+        // ✅ Format current date
+        val dateFormatter = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault())
+        val currentDate = dateFormatter.format(java.util.Date())
+
         sessionRef.child("sessionStatus").setValue("ended")
             .addOnSuccessListener {
                 Toast.makeText(this, "Class ended!", Toast.LENGTH_SHORT).show()
                 qrHandler?.removeCallbacks(qrRunnable)
-                finish()
+                markAbsentForMissingStudents(room, session, session, currentDate)
+
+                // ✅ Optionally close the activity after a short delay
+                Handler(mainLooper).postDelayed({
+                    finish()
+                }, 2000)
             }
             .addOnFailureListener {
                 Toast.makeText(this, "Failed to end session.", Toast.LENGTH_SHORT).show()
             }
     }
+    private fun markAbsentForMissingStudents(
+        roomId: String,
+        previousSessionId: String,
+        currentSessionId: String,
+        currentDate: String
+    ) {
+        val database = FirebaseDatabase.getInstance().getReference("rooms").child(roomId)
+        val previousAttendanceRef = database.child("sessions").child(previousSessionId).child("attendance")
+        val currentAttendanceRef = database.child("sessions").child(currentSessionId).child("attendance").child(currentDate)
+
+        previousAttendanceRef.get().addOnSuccessListener { previousSnapshot ->
+            if (!previousSnapshot.exists()) {
+                Log.w("AttendanceAuto", "⚠️ No previous attendance found for $previousSessionId")
+                return@addOnSuccessListener
+            }
+
+            // ✅ Collect ALL unique student IDs from all previous dates
+            val allPreviousStudents = mutableMapOf<String, String>() // studentId -> studentName
+
+            for (dateNode in previousSnapshot.children) {
+                for (student in dateNode.children) {
+                    val studentId = student.key ?: continue
+                    val studentName = student.child("name").getValue(String::class.java) ?: "Unknown Student"
+                    allPreviousStudents[studentId] = studentName
+                }
+            }
+
+            // ✅ Now get current attendance
+            currentAttendanceRef.get().addOnSuccessListener { currentSnapshot ->
+                val absentTasks = mutableListOf<Task<Void>>()
+
+                for ((studentId, studentName) in allPreviousStudents) {
+                    // If student not found today, mark absent
+                    if (!currentSnapshot.hasChild(studentId)) {
+                        val absentData = mapOf(
+                            "name" to studentName,
+                            "status" to "absent",
+                            "confidence" to "No scan record",
+                            "qrValid" to false,
+                            "timeScanned" to "N/A",
+                            "lateDuration" to 0,
+                            "totalOutsideTime" to 0
+                        )
+
+                        val task = currentAttendanceRef.child(studentId).setValue(absentData)
+                        absentTasks.add(task)
+                    }
+                }
+
+                Tasks.whenAll(absentTasks).addOnCompleteListener {
+                    if (it.isSuccessful) {
+                        Log.i("AttendanceAuto", "✅ All absent students recorded successfully.")
+                    } else {
+                        Log.e("AttendanceAuto", "❌ Failed to record absents.", it.exception)
+                    }
+                }
+            }
+        }.addOnFailureListener { e ->
+            Log.e("AttendanceAuto", "❌ Error reading previous attendance", e)
+        }
+    }
+
+
 
     private fun showAttendanceBottomSheet(status: String) {
         val currentList = attendanceListViewModel.attendanceList.value ?: emptyList()
         val bottomSheet = AttendanceListBottomSheet.newInstance(status, ArrayList(currentList))
         bottomSheet.show(supportFragmentManager, "AttendanceListBottomSheet")
     }
+     fun onConfirmPresentClick(record: AttendanceRecord) {
+        showConfirmPresentDialog(record)
+    }
+
+    private fun showConfirmPresentDialog(record: AttendanceRecord) {
+        AlertDialog.Builder(this)
+            .setTitle("Confirm Attendance")
+            .setMessage("Are you sure you want to mark ${record.name} as Present?")
+            .setPositiveButton("Confirm") { dialog, _ ->
+                val room = roomId ?: return@setPositiveButton
+                val session = sessionId ?: return@setPositiveButton
+
+                // ✅ Get today's date (to match how it’s stored in Firebase)
+                val dateFormatter = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault())
+                val currentDate = dateFormatter.format(java.util.Date())
+
+                // ✅ Updated call to include date parameter
+                attendanceListViewModel.updateAttendanceStatus(room, session, currentDate, record)
+
+                dialog.dismiss()
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+
+
+
+
 
 
     // ---------------------------

@@ -3,6 +3,7 @@ package com.example.attendease.teacher.ui.session.adapter
 import android.annotation.SuppressLint
 import android.graphics.Color
 import android.view.LayoutInflater
+import android.view.View
 import android.view.ViewGroup
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
@@ -11,7 +12,8 @@ import com.example.attendease.databinding.AttendanceCardBinding
 import com.example.attendease.teacher.data.model.AttendanceRecord
 
 class AttendanceAdapter(
-    private var attendanceList: List<AttendanceRecord>
+    private var attendanceList: List<AttendanceRecord>,
+    private val onMarkPresentClick: ((AttendanceRecord) -> Unit)? = null // Make it optional
 ) : RecyclerView.Adapter<AttendanceAdapter.AttendanceViewHolder>() {
 
     inner class AttendanceViewHolder(val binding: AttendanceCardBinding) :
@@ -19,46 +21,45 @@ class AttendanceAdapter(
 
         @SuppressLint("SetTextI18n")
         fun bind(record: AttendanceRecord) = with(binding) {
-            // ✅ Student name
             tvStudentName.text = record.name ?: "Unknown Student"
 
-            // ✅ Status text
-            tvStatusText.text = when (record.timeScanned) {
-                null -> "No scan record"
-                else -> "Scanned at ${record.timeScanned}"
-            }
+            tvStatusText.text = record.timeScanned?.let { "Scanned at $it" } ?: "No scan record"
 
-            // ✅ Badge (present / absent)
             tvStatusBadge.text = record.status?.capitalize() ?: "Unknown"
             val badgeColor = when (record.status?.lowercase()) {
-                "present" -> R.color.success_color
-                "late", "partial"-> R.color.dark_background
+                "present"  -> R.color.success_color
+                "partial"-> R.color.dark_background
                 "absent" -> R.color.red
-                else -> R.color.secondary_text
+                else -> R.color.yellow
             }
-            tvStatusBadge.setBackgroundColor(
-                ContextCompat.getColor(root.context, badgeColor)
-            )
+            tvStatusBadge.setBackgroundColor(ContextCompat.getColor(root.context, badgeColor))
 
+            if (record.status?.lowercase() == "partial") {
+                btnConfirmPresent.visibility = View.VISIBLE
+                btnConfirmPresent.setOnClickListener {
+                    onMarkPresentClick?.invoke(record)
+                }
+            } else {
+                btnConfirmPresent.visibility = View.GONE
+            }
 
-            // ✅ Status icon tint
             val iconColor = when (record.status?.lowercase()) {
-                "present" -> R.color.success_color
-                "late", "partial" -> R.color.dark_background
+                "present"-> R.color.success_color
+                "partial" -> R.color.dark_background
                 "absent" -> R.color.red
-                else -> R.color.secondary_text
+                else -> R.color.yellow
+
             }
             ivStatusIcon.setColorFilter(ContextCompat.getColor(root.context, iconColor))
 
-            // ✅ Optional: Use confidence text color
             record.confidence?.let {
-                if (it.contains("QR", ignoreCase = true)) {
-                    tvStatusText.setTextColor(ContextCompat.getColor(root.context, R.color.green_badge))
-                } else if (it.contains("Medium", ignoreCase = true)) {
-                    tvStatusText.setTextColor(ContextCompat.getColor(root.context, R.color.dark_background))
-                } else {
-                    tvStatusText.setTextColor(Color.GRAY)
-                }
+                tvStatusText.setTextColor(
+                    when {
+                        it.contains("QR", ignoreCase = true) -> ContextCompat.getColor(root.context, R.color.green_badge)
+                        it.contains("Medium", ignoreCase = true) -> ContextCompat.getColor(root.context, R.color.dark_background)
+                        else -> Color.GRAY
+                    }
+                )
             }
         }
     }
@@ -77,6 +78,7 @@ class AttendanceAdapter(
     }
 
     override fun getItemCount(): Int = attendanceList.size
+
     @SuppressLint("NotifyDataSetChanged")
     fun updateData(newList: List<AttendanceRecord>) {
         attendanceList = newList
