@@ -1,55 +1,101 @@
 package com.example.attendease.student.ui
 
 import android.os.Bundle
-import androidx.fragment.app.Fragment
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import com.example.attendease.R
-
-// TODO: Rename parameter arguments, choose names that match
-// the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
-private const val ARG_PARAM1 = "param1"
-private const val ARG_PARAM2 = "param2"
+import android.widget.Toast
+import androidx.core.view.isVisible
+import androidx.fragment.app.Fragment
+import androidx.fragment.app.viewModels
+import androidx.recyclerview.widget.LinearLayoutManager
+import com.example.attendease.databinding.FragmentHistoryScreenBinding
+import com.example.attendease.student.adapter.SubjectAdapter
+import com.example.attendease.student.data.Session
+import com.example.attendease.student.viewmodel.SubjectListViewModel
 
 class HistoryFragmentActivity : Fragment() {
-    // TODO: Rename and change types of parameters
-    private var param1: String? = null
-    private var param2: String? = null
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        arguments?.let {
-            param1 = it.getString(ARG_PARAM1)
-            param2 = it.getString(ARG_PARAM2)
-        }
-    }
+    private var _binding: FragmentHistoryScreenBinding? = null
+    private val binding get() = _binding!!
+
+    private lateinit var adapter: SubjectAdapter
+    private val viewModel: SubjectListViewModel by viewModels()
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
-    ): View? {
-        // Inflate the layout for this fragment
-        return inflater.inflate(R.layout.fragment_history_screen, container, false)
+    ): View {
+        _binding = FragmentHistoryScreenBinding.inflate(inflater, container, false)
+        return binding.root
     }
 
-    companion object {
-        /**
-         * Use this factory method to create a new instance of
-         * this fragment using the provided parameters.
-         *
-         * @param param1 Parameter 1.
-         * @param param2 Parameter 2.
-         * @return A new instance of fragment HistoryFragment.
-         */
-        // TODO: Rename and change types and number of parameters
-        @JvmStatic
-        fun newInstance(param1: String, param2: String) =
-            HistoryFragmentActivity().apply {
-                arguments = Bundle().apply {
-                    putString(ARG_PARAM1, param1)
-                    putString(ARG_PARAM2, param2)
-                }
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+
+        setupRecyclerView()
+        observeViewModel()
+
+        // Load matched subjects from CSV
+        viewModel.fetchMatchedSubjects()
+    }
+
+    private fun setupRecyclerView() {
+        adapter = SubjectAdapter(emptyList()) { selectedSubject ->
+            onSubjectClicked(selectedSubject)
+        }
+
+        binding.recyclerViewSubjects.layoutManager = LinearLayoutManager(requireContext())
+        binding.recyclerViewSubjects.adapter = adapter
+    }
+
+    private fun observeViewModel() {
+        viewModel.isLoading.observe(viewLifecycleOwner) { loading ->
+            binding.progressBar?.isVisible = loading
+        }
+
+        viewModel.subjects.observe(viewLifecycleOwner) { subjectList ->
+            if (subjectList.isEmpty()) {
+                binding.textEmptyState?.isVisible = true
+                binding.recyclerViewSubjects.isVisible = false
+            } else {
+                binding.textEmptyState?.isVisible = false
+                binding.recyclerViewSubjects.isVisible = true
+                adapter = SubjectAdapter(subjectList) { onSubjectClicked(it) }
+                binding.recyclerViewSubjects.adapter = adapter
             }
+        }
+
+        viewModel.errorMessage.observe(viewLifecycleOwner) { error ->
+            if (!error.isNullOrEmpty()) {
+                Toast.makeText(requireContext(), error, Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    private fun onSubjectClicked(session: Session) {
+        val attendanceFragment = AttendanceFragmentActivity().apply {
+            arguments = Bundle().apply {
+                putString("roomId", session.roomId)
+                putString("sessionId", session.sessionId)
+                Log.d("History", "passs the ${session.room}")
+                Log.d("History","passs the ${session.sessionId}")
+                Log.d("History","pass the ${session.subject}")
+
+            }
+        }
+
+        parentFragmentManager.beginTransaction()
+            .replace(id, attendanceFragment)
+            .addToBackStack(null)
+            .commit()
+    }
+
+
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        _binding = null
     }
 }

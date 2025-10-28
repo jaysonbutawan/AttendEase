@@ -1,6 +1,7 @@
 package com.example.attendease.student.helper
 
 import android.util.Log
+import com.example.attendease.student.data.AttendanceStatus
 import com.example.attendease.student.data.Session
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.FirebaseDatabase
@@ -16,6 +17,7 @@ object SessionHelper {
 
     suspend fun getMatchedSessions(): List<Session> = withContext(Dispatchers.IO) {
         val userId = currentUser?.uid ?: return@withContext emptyList()
+        Log.d(TAG, "👤 Current Firebase UID: $userId")
 
         try {
             val userScheduleRef = database.child("users").child(userId).child("schedule")
@@ -24,6 +26,7 @@ object SessionHelper {
             val userSnapshot = userScheduleRef.get().await()
             if (!userSnapshot.exists()) return@withContext emptyList()
 
+            // 🔹 Load the student's schedule data
             val studentSchedule = userSnapshot.children.mapNotNull {
                 val subject = it.child("subject").getValue(String::class.java)
                 val time = it.child("time").getValue(String::class.java)
@@ -38,6 +41,7 @@ object SessionHelper {
             val matchedSessions = mutableListOf<Session>()
 
             for (roomSnap in roomsSnapshot.children) {
+                val roomKey = roomSnap.key ?: continue // ✅ Firebase room ID
                 val roomName = roomSnap.child("name").getValue(String::class.java) ?: continue
                 val sessionsNode = roomSnap.child("sessions")
 
@@ -49,11 +53,13 @@ object SessionHelper {
                     val sessionStatus = sessionSnap.child("sessionStatus").getValue(String::class.java)
                     val sessionId = sessionSnap.key ?: continue
 
+                    // ✅ Get teacher name
                     val teacherSnap = database.child("users").child(teacherId ?: "").get().await()
                     val instructorName = teacherSnap.child("fullname").getValue(String::class.java) ?: continue
 
                     val sessionFullTime = "$startTime - $endTime"
 
+                    // ✅ Check if student's schedule matches this session
                     val match = studentSchedule.any { entry ->
                         entry["subject"].equals(sessionSubject, true) &&
                                 entry["instructor"].equals(instructorName, true) &&
@@ -62,7 +68,13 @@ object SessionHelper {
                     }
 
                     if (match) {
-                        val status = if (sessionStatus == "started") "Live" else "Upcoming"
+                        val status = when (sessionStatus) {
+                            "started" -> "Live"
+                            "ended" -> "Ended"
+                            else -> "Upcoming"
+                        }
+
+                        // ✅ Add the session with roomId
                         matchedSessions.add(
                             Session(
                                 sessionId = sessionId,
@@ -71,9 +83,12 @@ object SessionHelper {
                                 startTime = startTime ?: "",
                                 endTime = endTime ?: "",
                                 room = roomName,
+                                roomId = roomKey, // ✅ actual Firebase key
                                 status = status
                             )
                         )
+
+                        Log.d(TAG, "✅ Matched: $sessionSubject in $roomName ($roomKey)")
                     }
                 }
             }
@@ -86,5 +101,71 @@ object SessionHelper {
             return@withContext emptyList()
         }
     }
+
+    suspend fun getStudentAttendance(
+        roomId: String,
+        sessionId: String
+    ): List<AttendanceStatus> = withContext(Dispatchers.IO) {
+        val userId = currentUser?.uid ?: return@withContext emptyList()
+        val attendanceList = mutableListOf<AttendanceStatus>()
+
+        try {
+            Log.d(TAG, "📡 Fetching attendance for user: $userId, room: $roomId, session: $sessionId")
+
+            // ✅ Reference to the specific session
+            val sessionRef = database
+                .child("rooms")
+                .child(roomId)
+                .child("sessions")
+                .child(sessionId)
+
+            // ✅ Fetch the session details (to get subject name, etc.)
+            val sessionSnapshot = sessionRef.get().await()
+            if (!sessionSnapshot.exists()) {
+                Log.w(TAG, "⚠️ Session not found for ID: $sessionId in room: $roomId")
+                return@withContext emptyList()
+            }
+
+            val subject = sessionSnapshot.child("subject").getValue(String::class.java) ?: "Unknown Subject"
+            val attendanceRef = sessionRef.child("attendance")
+
+            // ✅ Fetch attendance data
+            val attendanceSnapshot = attendanceRef.get().await()
+            if (!attendanceSnapshot.exists()) {
+                Log.w(TAG, "⚠️ No attendance data found for session: $sessionId ($subject)")
+                return@withContext emptyList()
+            }
+
+            // ✅ Loop through attendance dates
+            for (dateSnap in attendanceSnapshot.children) {
+                val date = dateSnap.key ?: continue
+                val studentSnap = dateSnap.child(userId)
+
+                if (studentSnap.exists()) {
+                    val status = studentSnap.child("status").getValue(String::class.java) ?: "Unknown"
+                    attendanceList.add(
+                        AttendanceStatus(
+                            timeText = date, // Only show date
+                            statusText = "$subject: ${status.replaceFirstChar { it.uppercase() }}" // Subject + status
+                        )
+                    )
+                    Log.d(TAG, "✅ Found record for $subject on $date → $status")
+                }
+            }
+
+            if (attendanceList.isEmpty()) {
+                Log.w(TAG, "⚠️ No attendance records found for $subject (user: $userId, session: $sessionId)")
+            } else {
+                Log.d(TAG, "✅ Loaded ${attendanceList.size} attendance records for $subject")
+            }
+
+            return@withContext attendanceList
+
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ Error fetching attendance: ${e.message}", e)
+            return@withContext emptyList()
+        }
+    }
+
 
 }

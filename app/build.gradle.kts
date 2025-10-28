@@ -58,6 +58,7 @@ dependencies {
     implementation(libs.material)
     implementation(libs.androidx.credentials)
     implementation(libs.androidx.credentials.play.services.auth)
+    implementation("androidx.fragment:fragment-ktx:1.8.2")
 
     // Firebase
     implementation (platform(libs.firebase.bom))

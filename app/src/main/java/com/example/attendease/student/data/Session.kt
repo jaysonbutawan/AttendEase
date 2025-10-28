@@ -7,6 +7,7 @@ data class Session(
     val startTime: String = "",
     val endTime: String = "",
     val instructor: String = "",
+    val roomId: String = "",
     val status: String = ""
 )
 
