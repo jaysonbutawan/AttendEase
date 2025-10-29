@@ -25,7 +25,10 @@ import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
 import com.google.android.gms.maps.model.LatLng
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.database.DataSnapshot
+import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.FirebaseDatabase
+import com.google.firebase.database.ValueEventListener
 import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.barcode.BarcodeScannerOptions
 import com.google.mlkit.vision.barcode.BarcodeScanning
@@ -60,6 +63,10 @@ class ScanFragmentActivity : Fragment() {
         }
 
 
+    private var cameraProvider: ProcessCameraProvider? = null
+    private var camera: Camera? = null
+
+
     private val cameraPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
             if (granted) startCamera()
@@ -87,17 +94,16 @@ class ScanFragmentActivity : Fragment() {
         locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
 
     }
-
     private fun startCamera() {
         if (!scanningEnabled) {
             binding.previewView.visibility = View.GONE  // hide camera preview
             return
         }
 
-        binding.previewView.visibility = View.VISIBLE // show
+        binding.previewView.visibility = View.VISIBLE // show preview
         val cameraProviderFuture = ProcessCameraProvider.getInstance(requireContext())
         cameraProviderFuture.addListener({
-            val cameraProvider = cameraProviderFuture.get()
+            cameraProvider = cameraProviderFuture.get()
 
             val preview = Preview.Builder().build().apply {
                 surfaceProvider = binding.previewView.surfaceProvider
@@ -109,16 +115,55 @@ class ScanFragmentActivity : Fragment() {
                 .build()
 
             analysis.setAnalyzer(ContextCompat.getMainExecutor(requireContext())) { imageProxy ->
-                processImageProxy(imageProxy)
+                if (scanningEnabled) {
+                    processImageProxy(imageProxy)
+                } else {
+                    imageProxy.close() // Stop analyzing when scanning is disabled
+                }
             }
 
             val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
 
-            cameraProvider.unbindAll()
-            cameraProvider.bindToLifecycle(this, cameraSelector, preview, analysis)
+            // Unbind any previously bound use cases
+            cameraProvider?.unbindAll()
+
+            // Bind camera to lifecycle using viewLifecycleOwner so it auto-stops on destroy
+            camera = cameraProvider?.bindToLifecycle(viewLifecycleOwner, cameraSelector, preview, analysis)
 
         }, ContextCompat.getMainExecutor(requireContext()))
     }
+
+//    private fun startCamera() {
+//        if (!scanningEnabled) {
+//            binding.previewView.visibility = View.GONE  // hide camera preview
+//            return
+//        }
+//
+//        binding.previewView.visibility = View.VISIBLE // show
+//        val cameraProviderFuture = ProcessCameraProvider.getInstance(requireContext())
+//        cameraProviderFuture.addListener({
+//             cameraProvider = cameraProviderFuture.get()
+//
+//            val preview = Preview.Builder().build().apply {
+//                surfaceProvider = binding.previewView.surfaceProvider
+//            }
+//
+//            val analysis = ImageAnalysis.Builder()
+//                .setOutputImageRotationEnabled(true)
+//                .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+//                .build()
+//
+//            analysis.setAnalyzer(ContextCompat.getMainExecutor(requireContext())) { imageProxy ->
+//                processImageProxy(imageProxy)
+//            }
+//
+//            val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
+//
+//            cameraProvider.unbindAll()
+//            cameraProvider.bindToLifecycle(this, cameraSelector, preview, analysis)
+//
+//        }, ContextCompat.getMainExecutor(requireContext()))
+//    }
 
     @SuppressLint("UnsafeOptInUsageError")
     private fun processImageProxy(imageProxy: ImageProxy) {
@@ -131,9 +176,6 @@ class ScanFragmentActivity : Fragment() {
 
         scanner.process(inputImage)
             .addOnSuccessListener { barcodes ->
-//                if (barcodes.isEmpty()) {
-//                    Log.d("QR_SCAN", "No QR detected")
-//                } else {
                     for (barcode in barcodes) {
                         barcode.rawValue?.let { qrValue ->
                             Log.d("QR_SCAN", "Scanned: $qrValue")
@@ -458,12 +500,10 @@ class ScanFragmentActivity : Fragment() {
                         putString("timeScanned", currentTime)
                         putString("roomId", roomId)
                         putString("sessionId", sessionId)
-                        putString("dateScanned", currentDate) // ✅ Add this line
+                        putString("dateScanned", currentDate)
                     }
 
-
-                    // 3. Navigate to the confirmation fragment (JoinClassFragmentActivity)
-                    // Assuming you are using SafeArgs or standard Fragment transactions
+                    startTrackingOutsideTime(roomId, sessionId, studentId)
                     navigateToJoinClass(dataToPass)
                 }
                 .addOnFailureListener { e ->
@@ -485,6 +525,116 @@ class ScanFragmentActivity : Fragment() {
         }
     }
 
+    @SuppressLint("MissingPermission")
+    private fun startTrackingOutsideTime(roomId: String, sessionId: String, studentId: String) {
+        val fused = LocationServices.getFusedLocationProviderClient(requireContext())
+        val sessionRef = database.child(roomId).child("sessions").child(sessionId)
+        val attendanceRef = sessionRef
+            .child("attendance")
+            .child(SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date()))
+            .child(studentId)
+
+        var outsideStartTime: Long? = null
+        var totalOutsideTime = 0L
+        var trackingActive = true
+        val polygonPoints = mutableListOf<LatLng>()
+
+        database.child(roomId).child("polygon").get().addOnSuccessListener { polygonSnapshot ->
+            for (point in polygonSnapshot.children) {
+                val lat = point.child("lat").getValue(Double::class.java)
+                val lng = point.child("lng").getValue(Double::class.java)
+                if (lat != null && lng != null) polygonPoints.add(LatLng(lat, lng))
+            }
+
+            if (polygonPoints.isEmpty()) return@addOnSuccessListener
+
+            val request = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 5000L)
+                .setMinUpdateIntervalMillis(5000L)
+                .setMaxUpdates(Int.MAX_VALUE)
+                .build()
+
+            val callback = object : LocationCallback() {
+                override fun onLocationResult(result: LocationResult) {
+                    if (!trackingActive) return
+
+                    val location = result.lastLocation ?: return
+                    val studentLatLng = LatLng(location.latitude, location.longitude)
+                    val distance = LocationValidator.getDistanceFromPolygon(studentLatLng, polygonPoints)
+
+                    if (distance > 10f) {
+                        if (outsideStartTime == null) {
+                            outsideStartTime = System.currentTimeMillis()
+                        }
+                    } else {
+                        if (outsideStartTime != null) {
+                            val outsideDuration = System.currentTimeMillis() - outsideStartTime!!
+                            totalOutsideTime += outsideDuration
+                            outsideStartTime = null
+
+                            val totalOutsideMinutes = (totalOutsideTime / 60000).toInt()
+                            val totalOutsideDisplay = formatDuration(totalOutsideTime)
+
+                            val updates = mapOf(
+                                "totalOutsideTime" to totalOutsideMinutes,
+                                "outsideTimeDisplay" to totalOutsideDisplay
+                            )
+
+                            attendanceRef.updateChildren(updates)
+                        }
+                    }
+                }
+            }
+
+            fused.requestLocationUpdates(request, callback, Looper.getMainLooper())
+
+            sessionRef.child("sessionStatus").addValueEventListener(object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    val status = snapshot.getValue(String::class.java)
+                    if (status.equals("ended", ignoreCase = true)) {
+                        trackingActive = false
+                        fused.removeLocationUpdates(callback)
+
+                        if (outsideStartTime != null) {
+                            val outsideDuration = System.currentTimeMillis() - outsideStartTime!!
+                            totalOutsideTime += outsideDuration
+                            outsideStartTime = null
+                        }
+
+                        val totalOutsideMinutes = (totalOutsideTime / 60000).toInt()
+                        val totalOutsideDisplay = formatDuration(totalOutsideTime)
+
+                        val updates = mapOf(
+                            "totalOutsideTime" to totalOutsideMinutes,
+                            "outsideTimeDisplay" to totalOutsideDisplay
+                        )
+
+                        attendanceRef.updateChildren(updates).addOnSuccessListener {
+                            Toast.makeText(
+                                requireContext(),
+                                "Session Ended. Total Time Outside: $totalOutsideDisplay",
+                                Toast.LENGTH_LONG
+                            ).show()
+                        }
+                    }
+                }
+
+                override fun onCancelled(error: DatabaseError) {}
+            })
+        }
+    }
+
+
+    private fun formatDuration(ms: Long): String {
+        val minutes = ms / 60000
+        val seconds = (ms % 60000) / 1000
+        return when {
+            minutes > 0 -> "$minutes minute${if (minutes > 1) "s" else ""} $seconds second${if (seconds != 1L) "s" else ""}"
+            else -> "$seconds second${if (seconds != 1L) "s" else ""}"
+        }
+    }
+
+
+
 
     private fun navigateToJoinClass(dataToPass: Bundle) {
         val joinClassFragment = JoinClassFragmentActivity()
@@ -496,7 +646,9 @@ class ScanFragmentActivity : Fragment() {
 
     override fun onDestroyView() {
         super.onDestroyView()
+        cameraProvider?.unbindAll()
         _binding = null
+        scanningEnabled = false
     }
 
     override fun onPause() {
@@ -504,6 +656,7 @@ class ScanFragmentActivity : Fragment() {
         try {
             ProcessCameraProvider.getInstance(requireContext()).get().unbindAll()
         } catch (_: Exception) {}
+        cameraProvider?.unbindAll()
     }
     override fun onResume() {
         super.onResume()

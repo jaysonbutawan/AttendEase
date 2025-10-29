@@ -22,13 +22,11 @@ class AttendanceFragmentActivity : Fragment() {
 
     private var roomId: String? = null
     private var sessionId: String? = null
-    private var selectedSubject: String? = null
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // ✅ Get both roomId and sessionId passed from previous screen
         roomId = arguments?.getString("roomId")
         sessionId = arguments?.getString("sessionId")
         Log.d("Attendance","get the room $roomId")
