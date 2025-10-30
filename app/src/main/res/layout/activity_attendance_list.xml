@@ -23,7 +23,7 @@
         <androidx.constraintlayout.widget.ConstraintLayout
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:background="#FAFAFF"
+            android:background="@drawable/student_rounded_button"
             android:padding="20dp">
 
             <!-- Class Session Header -->
@@ -31,7 +31,7 @@
                 android:id="@+id/text_class_title"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:textColor="#1C1B1F"
+                android:textColor="@color/white"
                 android:textSize="20sp"
                 android:textStyle="bold"
                 app:layout_constraintTop_toTopOf="parent"
@@ -45,7 +45,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="4dp"
-                android:textColor="#79747E"
+                android:textColor="@color/white"
                 android:textSize="14sp"
                 app:layout_constraintTop_toBottomOf="@+id/text_class_title"
                 app:layout_constraintStart_toStartOf="parent"

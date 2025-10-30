@@ -309,7 +309,7 @@ class ScheduleFragmentActivity : Fragment() {
 
         androidx.appcompat.app.AlertDialog.Builder(requireContext())
             .setTitle("No Matching Classes Found")
-            .setMessage("We couldn't match any sessions from the server with the schedule you uploaded. Please ensure the subject, time, room, and instructor names in your CSV file exactly match the available classes.")
+            .setMessage("We couldn't match any sessions from the server with the schedule you uploaded.")
             .setPositiveButton("OK") { dialog, _ ->
                 dialog.dismiss()
             }

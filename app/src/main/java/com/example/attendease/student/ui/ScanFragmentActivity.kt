@@ -121,52 +121,18 @@ class ScanFragmentActivity : Fragment() {
                 if (scanningEnabled) {
                     processImageProxy(imageProxy)
                 } else {
-                    imageProxy.close() // Stop analyzing when scanning is disabled
+                    imageProxy.close()
                 }
             }
 
             val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
 
-            // Unbind any previously bound use cases
             cameraProvider?.unbindAll()
 
-            // Bind camera to lifecycle using viewLifecycleOwner so it auto-stops on destroy
             camera = cameraProvider?.bindToLifecycle(viewLifecycleOwner, cameraSelector, preview, analysis)
 
         }, ContextCompat.getMainExecutor(requireContext()))
     }
-
-//    private fun startCamera() {
-//        if (!scanningEnabled) {
-//            binding.previewView.visibility = View.GONE  // hide camera preview
-//            return
-//        }
-//
-//        binding.previewView.visibility = View.VISIBLE // show
-//        val cameraProviderFuture = ProcessCameraProvider.getInstance(requireContext())
-//        cameraProviderFuture.addListener({
-//             cameraProvider = cameraProviderFuture.get()
-//
-//            val preview = Preview.Builder().build().apply {
-//                surfaceProvider = binding.previewView.surfaceProvider
-//            }
-//
-//            val analysis = ImageAnalysis.Builder()
-//                .setOutputImageRotationEnabled(true)
-//                .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-//                .build()
-//
-//            analysis.setAnalyzer(ContextCompat.getMainExecutor(requireContext())) { imageProxy ->
-//                processImageProxy(imageProxy)
-//            }
-//
-//            val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
-//
-//            cameraProvider.unbindAll()
-//            cameraProvider.bindToLifecycle(this, cameraSelector, preview, analysis)
-//
-//        }, ContextCompat.getMainExecutor(requireContext()))
-//    }
 
     @SuppressLint("UnsafeOptInUsageError")
     private fun processImageProxy(imageProxy: ImageProxy) {
@@ -338,7 +304,6 @@ class ScanFragmentActivity : Fragment() {
                 })
 
 
-                // --- OPTIMIZATION POINT 4: Call optimized getLocation ---
                 getLocation { location ->
                     if (location == null) {
                         resetState("Unable to get location.")
@@ -348,7 +313,6 @@ class ScanFragmentActivity : Fragment() {
                     val studentLatLng = LatLng(location.latitude, location.longitude)
                     val gpsAccuracy = location.accuracy // meters
 
-                    // Validation logic (Fast computations)
                     val distance = LocationValidator.getDistanceFromPolygon(studentLatLng, polygonPoints)
                     val isInsideBuffer = LocationValidator.isInsidePolygon(studentLatLng, polygonPoints, toleranceMeters = 50f)
 
@@ -375,11 +339,10 @@ class ScanFragmentActivity : Fragment() {
                         return@getLocation
                     }
 
-                    // Validation logic: Prioritize acceptable accuracy (e.g., <= 30m)
                     val validationResult = when {
-                        gpsAccuracy > 30f -> "partial" // Low accuracy, needs review
-                        distance <= 15f -> "present"   // Good accuracy, close to polygon
-                        else -> "partial"             // Good accuracy, but too far from polygon
+                        gpsAccuracy > 30f -> "partial"
+                        distance <= 15f -> "present"
+                        else -> "partial"
                     }
 
                     val confidence = when (validationResult) {

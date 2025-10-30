@@ -53,6 +53,7 @@
                     android:text="@string/session_qr_code"
                     android:textSize="24sp"
                     android:textStyle="bold"
+                    android:textColor="@color/black"
                     android:layout_marginBottom="2dp"
                     android:gravity="center" />
 
@@ -70,7 +71,7 @@
                     android:text="@string/scan_this_qr_code_to_join_the_session"
                     android:gravity="center"
                     android:textSize="16sp"
-                    android:textColor="@android:color/darker_gray" />
+                    android:textColor="@android:color/black" />
             </LinearLayout>
         </androidx.cardview.widget.CardView>
 
@@ -82,7 +83,7 @@
             android:layout_marginStart="20dp"
             android:layout_marginEnd="20dp"
             android:text="Attendance Summary"
-            android:textColor="@android:color/black"
+            android:textColor="@color/blue"
             android:textSize="20sp"
             android:textStyle="bold"
             app:layout_constraintTop_toBottomOf="@id/sessionCard"
@@ -220,7 +221,8 @@
             app:layout_constraintTop_toBottomOf="@+id/attendanceCards"
             app:layout_constraintBottom_toTopOf="@+id/endClassCard"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"/>
+            app:layout_constraintEnd_toEndOf="parent"
+           tools:listitem="@layout/attendance_card"/>
 
 
         <androidx.cardview.widget.CardView

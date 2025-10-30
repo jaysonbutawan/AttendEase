@@ -1,5 +1,6 @@
 package com.example.attendease.student.adapter
 
+import android.annotation.SuppressLint
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
@@ -46,6 +47,7 @@ class AttendanceStatusAdapter(
 
     override fun getItemCount(): Int = attendanceList.size
 
+    @SuppressLint("NotifyDataSetChanged")
     fun updateData(newList: List<AttendanceStatus>) {
         attendanceList = newList
         notifyDataSetChanged()

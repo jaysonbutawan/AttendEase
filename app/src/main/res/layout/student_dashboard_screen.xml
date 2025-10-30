@@ -109,7 +109,7 @@
                 android:id="@+id/liveClassHeader"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:text="Software Engineering\nis live now in CS-305"
+                android:text="Software Engineering is live now in CS-305"
                 android:textColor="@color/white"
                 android:textSize="18sp"
                 android:textStyle="bold"
@@ -144,13 +144,6 @@
             android:id="@+id/fragmentContainer"
             android:layout_width="match_parent"
             android:layout_height="match_parent"/>
-<!--        <androidx.core.widget.NestedScrollView-->
-<!--            android:id="@+id/scrollView"-->
-<!--            android:layout_width="match_parent"-->
-<!--            android:layout_height="match_parent"-->
-<!--            android:fillViewport="true"-->
-<!--            android:nestedScrollingEnabled="true"/>-->
-
     </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 
 
