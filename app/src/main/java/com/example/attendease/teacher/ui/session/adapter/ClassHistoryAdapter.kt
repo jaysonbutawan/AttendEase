@@ -24,7 +24,7 @@ class ClassHistoryAdapter(
                 val formattedDate = formatDate(session.date)
 
                 val time = "${session.startTime ?: "N/A"} - ${session.endTime ?: "N/A"}"
-                textSubjectDetails.text = "$time | $formattedDate"
+                textSubjectDetails.text = "$formattedDate |$time"
 
                 root.setOnClickListener {
                     onItemClick(session)
@@ -40,7 +40,7 @@ class ClassHistoryAdapter(
                 val parsedDate = inputFormat.parse(dateString)
                 parsedDate?.let { outputFormat.format(it) } ?: dateString
             } catch (e: Exception) {
-                dateString // fallback if format fails
+                dateString
             }
         }
     }

@@ -1,5 +1,6 @@
 package com.example.attendease.teacher.ui.session.viewmodel
 
+import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
@@ -32,6 +33,9 @@ class AttendanceListViewModel : ViewModel() {
             onResult = { records ->
                 _attendanceList.postValue(records)
                 _loading.postValue(false)
+                Log.d("AttendanceViewModel", "🧩 Received ${records.size} records from repository")
+                records.forEach { Log.d("AttendanceViewModel", "🔄 ${it.name}: ${it.confidence}") }
+
             },
             onError = { errorMessage ->
                 _error.postValue(errorMessage)
@@ -40,6 +44,8 @@ class AttendanceListViewModel : ViewModel() {
         )
     }
 
+
+    //use in AttendanceListActivity
     fun fetchAttendanceList(roomId: String?, sessionId: String, date: String) {
         if (roomId == null) {
             _error.postValue("Missing roomId — cannot load attendance.")

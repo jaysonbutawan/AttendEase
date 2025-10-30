@@ -18,6 +18,7 @@ import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import com.example.attendease.databinding.FragmentScanScreenBinding
 import com.example.attendease.student.helper.LocationValidator
+import com.example.attendease.student.ui.dialogs.OutsideDialog
 import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationResult
@@ -36,7 +37,6 @@ import com.google.mlkit.vision.common.InputImage
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-import kotlin.math.abs
 
 class ScanFragmentActivity : Fragment() {
 
@@ -45,6 +45,8 @@ class ScanFragmentActivity : Fragment() {
 
     private var scanningEnabled = true
     private val database = FirebaseDatabase.getInstance().getReference("rooms")
+    private lateinit var outsideDialog: OutsideDialog
+
 
     private val scanner by lazy {
         BarcodeScanning.getClient(
@@ -92,6 +94,7 @@ class ScanFragmentActivity : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
         locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+        outsideDialog = OutsideDialog(requireContext())
 
     }
     private fun startCamera() {
@@ -381,7 +384,7 @@ class ScanFragmentActivity : Fragment() {
 
                     val confidence = when (validationResult) {
                         "present" -> if (gpsAccuracy <= 15f) "High" else "Medium"
-                        "partial" -> "Partial — Low accuracy or Outside Geo-Fence"
+                        "partial" -> "Partial - Low GPS accuracy in attendance"
                         else -> "Low / Needs review"
                     }
 
@@ -396,7 +399,6 @@ class ScanFragmentActivity : Fragment() {
                         validationResult
                     )
 
-                    // Final state reset (success handled in markAttendance, but ensure loading stops)
                     showLoading(false)
                     binding.previewView.visibility = View.GONE
                 }
@@ -524,7 +526,6 @@ class ScanFragmentActivity : Fragment() {
             scanningEnabled = true
         }
     }
-
     @SuppressLint("MissingPermission")
     private fun startTrackingOutsideTime(roomId: String, sessionId: String, studentId: String) {
         val fused = LocationServices.getFusedLocationProviderClient(requireContext())
@@ -561,10 +562,23 @@ class ScanFragmentActivity : Fragment() {
                     val studentLatLng = LatLng(location.latitude, location.longitude)
                     val distance = LocationValidator.getDistanceFromPolygon(studentLatLng, polygonPoints)
 
+
+                    val newConfidence = when {
+                        distance > 10f -> "Partial - Left geofence area"
+                        else -> "High"
+                    }
+
+                    attendanceRef.child("confidence").setValue(newConfidence)
+
+
                     if (distance > 10f) {
                         if (outsideStartTime == null) {
                             outsideStartTime = System.currentTimeMillis()
+                            requireActivity().runOnUiThread {
+                                if (!outsideDialog.isShowing()) outsideDialog.show(distance)
+                            }
                         }
+
                     } else {
                         if (outsideStartTime != null) {
                             val outsideDuration = System.currentTimeMillis() - outsideStartTime!!
@@ -581,6 +595,9 @@ class ScanFragmentActivity : Fragment() {
 
                             attendanceRef.updateChildren(updates)
                         }
+                        requireActivity().runOnUiThread {
+                            if (outsideDialog.isShowing()) outsideDialog.dismiss()
+                        }
                     }
                 }
             }
@@ -593,6 +610,10 @@ class ScanFragmentActivity : Fragment() {
                     if (status.equals("ended", ignoreCase = true)) {
                         trackingActive = false
                         fused.removeLocationUpdates(callback)
+                        requireActivity().runOnUiThread {
+                            if (outsideDialog.isShowing()) outsideDialog.dismiss()
+                        }
+
 
                         if (outsideStartTime != null) {
                             val outsideDuration = System.currentTimeMillis() - outsideStartTime!!

@@ -13,7 +13,7 @@ import com.example.attendease.teacher.data.model.AttendanceRecord
 
 class AttendanceAdapter(
     private var attendanceList: List<AttendanceRecord>,
-    private val onMarkPresentClick: ((AttendanceRecord) -> Unit)? = null // Make it optional
+    private val onMarkPresentClick: ((AttendanceRecord) -> Unit)? = null
 ) : RecyclerView.Adapter<AttendanceAdapter.AttendanceViewHolder>() {
 
     inner class AttendanceViewHolder(val binding: AttendanceCardBinding) :
@@ -21,42 +21,76 @@ class AttendanceAdapter(
 
         @SuppressLint("SetTextI18n")
         fun bind(record: AttendanceRecord) = with(binding) {
-            tvStudentName.text = record.name ?: "Unknown Student"
 
+            // --- Student Info Display ---
+            tvStudentName.text = record.name ?: "Unknown Student"
             tvStatusText.text = record.timeScanned?.let { "Scanned at $it" } ?: "No scan record"
 
+            // --- Status Badge ---
             tvStatusBadge.text = record.status?.capitalize() ?: "Unknown"
             val badgeColor = when (record.status?.lowercase()) {
-                "present"  -> R.color.success_color
-                "partial"-> R.color.dark_background
+                "present" -> R.color.success_color
+                "partial" -> R.color.dark_background
                 "absent" -> R.color.red
                 else -> R.color.yellow
             }
             tvStatusBadge.setBackgroundColor(ContextCompat.getColor(root.context, badgeColor))
 
-            if (record.status?.lowercase() == "partial") {
-                btnConfirmPresent.visibility = View.VISIBLE
-                btnConfirmPresent.setOnClickListener {
-                    onMarkPresentClick?.invoke(record)
-                }
-            } else {
-                btnConfirmPresent.visibility = View.GONE
-            }
-
+            // --- Status Icon ---
             val iconColor = when (record.status?.lowercase()) {
-                "present"-> R.color.success_color
+                "present" -> R.color.success_color
                 "partial" -> R.color.dark_background
                 "absent" -> R.color.red
                 else -> R.color.yellow
-
             }
             ivStatusIcon.setColorFilter(ContextCompat.getColor(root.context, iconColor))
 
+            // --- Handle Partial Status ---
+            if (record.status.equals("partial", true)) {
+
+                // Always show confirm button for Partial (Low GPS or Left Geofence)
+                btnConfirmPresent.apply {
+                    visibility = View.VISIBLE
+                    text = "Confirm Present"
+                    setBackgroundColor(Color.RED)
+                    setOnClickListener { onMarkPresentClick?.invoke(record) }
+                }
+
+                // Display detailed reason for being Partial
+                when {
+                    record.confidence?.contains("Low GPS", ignoreCase = true) == true -> {
+                        // 🟠 Partial due to low GPS accuracy
+                        tvStatusText.text = "Partial — Low GPS accuracy detected"
+                        tvStatusText.setTextColor(Color.parseColor("#F4A261")) // orange
+                    }
+
+                    record.confidence?.contains("Left geofence", ignoreCase = true) == true -> {
+                        // 🔴 Partial because student left geofence area
+                        val outsideInfo = record.outsideTimeDisplay ?: "${record.totalOutsideTime ?: 0} min outside"
+                        tvStatusText.text = "Partial — Left geofence area ($outsideInfo)"
+                        tvStatusText.setTextColor(Color.parseColor("#E76F51")) // red-orange
+                    }
+
+                    else -> {
+                        // ⚪ Unknown reason for partial
+                        tvStatusText.text = "Partial — Reason unknown"
+                        tvStatusText.setTextColor(Color.GRAY)
+                    }
+                }
+
+            } else {
+                // Hide confirm button for non-partial statuses
+                btnConfirmPresent.visibility = View.GONE
+            }
+
+            // --- Optional confidence styling for other cases (non-partial) ---
             record.confidence?.let {
                 tvStatusText.setTextColor(
                     when {
-                        it.contains("QR", ignoreCase = true) -> ContextCompat.getColor(root.context, R.color.green_badge)
-                        it.contains("Medium", ignoreCase = true) -> ContextCompat.getColor(root.context, R.color.dark_background)
+                        it.contains("QR", ignoreCase = true) ->
+                            ContextCompat.getColor(root.context, R.color.green_badge)
+                        it.contains("Medium", ignoreCase = true) ->
+                            ContextCompat.getColor(root.context, R.color.dark_background)
                         else -> Color.GRAY
                     }
                 )

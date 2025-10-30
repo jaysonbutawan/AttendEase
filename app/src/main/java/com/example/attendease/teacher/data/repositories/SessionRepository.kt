@@ -136,21 +136,52 @@ class SessionRepository {
 
         attendanceRef.addValueEventListener(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
+                Log.d("SessionRepository", "Snapshot exists: ${snapshot.exists()}, children count: ${snapshot.childrenCount}")
+
                 val attendanceList = mutableListOf<AttendanceRecord>()
                 for (attendanceSnap in snapshot.children) {
+                    Log.d("SessionRepository", "Raw snapshot key=${attendanceSnap.key}, value=${attendanceSnap.value}")
+
                     val record = attendanceSnap.getValue(AttendanceRecord::class.java)
-                    record?.id = attendanceSnap.key
-                    record?.let { attendanceList.add(it) }
+                    if (record == null) {
+                        Log.w("SessionRepository", "⚠️ Failed to parse record for key=${attendanceSnap.key}")
+                    } else {
+                        record.id = attendanceSnap.key
+                        attendanceList.add(record)
+
+                        // Log all fields, even if some are null
+                        Log.d(
+                            "SessionRepository",
+                            """
+                        📄 Attendance Record:
+                        ├─ ID: ${record.id}
+                        ├─ Name: ${record.name ?: "NULL"}
+                        ├─ Status: ${record.status ?: "NULL"}
+                        ├─ Confidence: ${record.confidence ?: "NULL"}
+                        ├─ Time Scanned: ${record.timeScanned ?: "NULL"}
+                        ├─ Late Duration: ${record.lateDuration ?: "NULL"}
+                        ├─ Total Outside Time: ${record.totalOutsideTime ?: "NULL"}
+                        └─ Outside Time Display: ${record.outsideTimeDisplay ?: "NULL"}
+                        """.trimIndent()
+                        )
+                    }
                 }
-                Log.d("SessionRepository", "Loaded ${attendanceList.size} attendance records for session $sessionId on $currentDate")
+
+                Log.d(
+                    "SessionRepository",
+                    "✅ Loaded ${attendanceList.size} attendance records for session $sessionId on $currentDate"
+                )
                 onResult(attendanceList)
             }
 
             override fun onCancelled(error: DatabaseError) {
+                Log.e("SessionRepository", "Firebase cancelled: ${error.message}")
                 onError(error.message)
             }
         })
     }
+
+
 
     /**
      * Fetches a list of all historical class instances (sessions identified by date)

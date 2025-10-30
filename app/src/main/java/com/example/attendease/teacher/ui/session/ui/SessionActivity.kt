@@ -278,7 +278,7 @@ class SessionActivity : AppCompatActivity() {
         val bottomSheet = AttendanceListBottomSheet.newInstance(status, ArrayList(currentList))
         bottomSheet.show(supportFragmentManager, "AttendanceListBottomSheet")
     }
-     fun onConfirmPresentClick(record: AttendanceRecord) {
+     private fun onConfirmPresentClick(record: AttendanceRecord) {
         showConfirmPresentDialog(record)
     }
 
@@ -302,11 +302,6 @@ class SessionActivity : AppCompatActivity() {
             .setNegativeButton("Cancel", null)
             .show()
     }
-
-
-
-
-
 
 
     // ---------------------------
