@@ -1,6 +1,8 @@
 package com.example.attendease.student.helper
 
+import android.os.Build
 import android.util.Log
+import androidx.annotation.RequiresApi
 import com.example.attendease.student.data.AttendanceStatus
 import com.example.attendease.student.data.Session
 import com.google.firebase.auth.FirebaseAuth
@@ -8,6 +10,9 @@ import com.google.firebase.database.FirebaseDatabase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 object SessionHelper {
 
@@ -102,6 +107,75 @@ object SessionHelper {
         }
     }
 
+    suspend fun getSessionsWithAttendance(): List<Session> = withContext(Dispatchers.IO) {
+        val userId = currentUser?.uid ?: return@withContext emptyList()
+        val sessionsWithAttendance = mutableListOf<Session>()
+
+        try {
+            Log.d(TAG, "📡 Fetching sessions with attendance for user: $userId")
+
+            val roomsSnapshot = database.child("rooms").get().await()
+            for (roomSnap in roomsSnapshot.children) {
+                val roomId = roomSnap.key ?: continue
+                val roomName = roomSnap.child("name").getValue(String::class.java) ?: continue
+                val sessionsNode = roomSnap.child("sessions")
+
+                for (sessionSnap in sessionsNode.children) {
+                    val sessionId = sessionSnap.key ?: continue
+                    val sessionSubject = sessionSnap.child("subject").getValue(String::class.java) ?: "Unknown"
+                    val teacherId = sessionSnap.child("teacherId").getValue(String::class.java)
+                    val startTime = sessionSnap.child("startTime").getValue(String::class.java) ?: ""
+                    val endTime = sessionSnap.child("endTime").getValue(String::class.java) ?: ""
+                    val sessionStatus = sessionSnap.child("sessionStatus").getValue(String::class.java) ?: "upcoming"
+
+                    // Check if the user has attendance for this session
+                    val attendanceNode = sessionSnap.child("attendance")
+                    val hasAttendance = attendanceNode.children.any { dateSnap ->
+                        dateSnap.child(userId).exists()
+                    }
+
+                    if (hasAttendance) {
+                        // Get teacher name
+                        val instructorName = if (!teacherId.isNullOrEmpty()) {
+                            database.child("users").child(teacherId).child("fullname").get().await().getValue(String::class.java) ?: "Unknown"
+                        } else "Unknown"
+
+                        val status = when (sessionStatus.lowercase()) {
+                            "started" -> "Live"
+                            "ended" -> "Ended"
+                            else -> "Upcoming"
+                        }
+
+                        sessionsWithAttendance.add(
+                            Session(
+                                sessionId = sessionId,
+                                subject = sessionSubject,
+                                instructor = instructorName,
+                                startTime = startTime,
+                                endTime = endTime,
+                                room = roomName,
+                                roomId = roomId,
+                                status = status,
+                                attendance = getStudentAttendance(roomId, sessionId) // attach attendance
+                            )
+                        )
+
+                        Log.d(TAG, "✅ Added session with attendance: $sessionSubject in $roomName ($sessionId)")
+                    }
+                }
+            }
+
+            Log.d(TAG, "✅ Total sessions with attendance: ${sessionsWithAttendance.size}")
+            return@withContext sessionsWithAttendance
+
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ Error fetching sessions with attendance: ${e.message}", e)
+            return@withContext emptyList()
+        }
+    }
+
+
+    @RequiresApi(Build.VERSION_CODES.O)
     suspend fun getStudentAttendance(
         roomId: String,
         sessionId: String
@@ -136,20 +210,29 @@ object SessionHelper {
                 return@withContext emptyList()
             }
 
-            // ✅ Loop through attendance dates
             for (dateSnap in attendanceSnapshot.children) {
-                val date = dateSnap.key ?: continue
+                val dateStr = dateSnap.key ?: continue
                 val studentSnap = dateSnap.child(userId)
 
                 if (studentSnap.exists()) {
                     val status = studentSnap.child("status").getValue(String::class.java) ?: "Unknown"
+
+                    // Convert "2025-10-30" → "October, 30, 2025"
+                    val formattedDate = try {
+                        val parsedDate = LocalDate.parse(dateStr, DateTimeFormatter.ISO_DATE)
+                        parsedDate.format(DateTimeFormatter.ofPattern("MMMM, dd, yyyy", Locale.ENGLISH))
+                    } catch (e: Exception) {
+                        dateStr // fallback if parsing fails
+                    }
+
                     attendanceList.add(
                         AttendanceStatus(
-                            timeText = date, // Only show date
-                            statusText = "$subject: ${status.replaceFirstChar { it.uppercase() }}" // Subject + status
+                            timeText = formattedDate,
+                            statusText = "${status.replaceFirstChar { it.uppercase() }}"
                         )
                     )
-                    Log.d(TAG, "✅ Found record for $subject on $date → $status")
+
+                    Log.d(TAG, "✅ Found record for $subject on $formattedDate → $status")
                 }
             }
 

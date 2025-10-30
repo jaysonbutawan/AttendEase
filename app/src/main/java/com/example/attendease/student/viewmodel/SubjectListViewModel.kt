@@ -35,7 +35,7 @@ class SubjectListViewModel : ViewModel() {
         viewModelScope.launch {
             try {
                 Log.d("SubjectListVM", "🚀 Fetching matched subjects...")
-                val matchedSessions = SessionHelper.getMatchedSessions()
+                val matchedSessions = SessionHelper.getSessionsWithAttendance()
 
                 if (matchedSessions.isEmpty()) {
                     Log.w("SubjectListVM", "⚠️ No matched subjects found.")

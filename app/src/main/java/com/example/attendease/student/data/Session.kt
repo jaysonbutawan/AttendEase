@@ -8,6 +8,7 @@ data class Session(
     val endTime: String = "",
     val instructor: String = "",
     val roomId: String = "",
-    val status: String = ""
+    val status: String = "",
+    val attendance: List<AttendanceStatus> = emptyList()
 )
 
