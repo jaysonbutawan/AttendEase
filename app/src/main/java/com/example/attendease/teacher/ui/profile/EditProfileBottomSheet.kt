@@ -19,11 +19,9 @@ import kotlinx.coroutines.launch
 
 class EditProfileBottomSheet : BottomSheetDialogFragment() {
 
-    // ✅ ViewBinding reference
     private var _binding: TeacherDialogEditProfileBinding? = null
     private val binding get() = _binding!!
 
-    // ✅ Use lazy-loaded variables (read inside lifecycle)
     private var name: String? = null
     private var image: String? = null
     private var email: String? = null
@@ -32,42 +30,12 @@ class EditProfileBottomSheet : BottomSheetDialogFragment() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // ✅ Retrieve arguments safely here (before view creation)
         arguments?.let {
             name = it.getString("name")
             email = it.getString("email")
             image = it.getString("image")
         }
     }
-
-    override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
-        val dialog = super.onCreateDialog(savedInstanceState) as BottomSheetDialog
-        dialog.setOnShowListener { dialogInterface ->
-            val bottomSheetDialog = dialogInterface as BottomSheetDialog
-            val bottomSheet = bottomSheetDialog.findViewById<View>(
-                com.google.android.material.R.id.design_bottom_sheet
-            ) ?: return@setOnShowListener
-            setupBottomSheetBehavior(bottomSheet)
-        }
-        return dialog
-    }
-
-    private fun setupBottomSheetBehavior(bottomSheet: View) {
-        val behavior = BottomSheetBehavior.from(bottomSheet)
-        val displayMetrics = resources.displayMetrics
-        val screenHeight = displayMetrics.heightPixels
-        val topMarginPx = (50 * displayMetrics.density).toInt()
-
-        behavior.expandedOffset = topMarginPx
-        behavior.state = BottomSheetBehavior.STATE_EXPANDED
-
-        val layoutParams = bottomSheet.layoutParams
-        if (layoutParams.height == ViewGroup.LayoutParams.WRAP_CONTENT) {
-            layoutParams.height = screenHeight - topMarginPx
-            bottomSheet.layoutParams = layoutParams
-        }
-    }
-
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
@@ -79,9 +47,7 @@ class EditProfileBottomSheet : BottomSheetDialogFragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // ✅ Populate data into views
         binding.etEditName.setText(name)
-        binding.etEditEmail.setText(email)
 
         if (!image.isNullOrEmpty()) {
             Glide.with(requireContext())
@@ -93,7 +59,6 @@ class EditProfileBottomSheet : BottomSheetDialogFragment() {
             binding.profileImageEdit.setImageResource(R.drawable.default_avatar)
         }
 
-        // ✅ Handle Save button
         binding.btnSaveProfile.setOnClickListener {
             val newName = binding.etEditName.text.toString().trim()
 
@@ -115,8 +80,6 @@ class EditProfileBottomSheet : BottomSheetDialogFragment() {
             }
         }
 
-
-        // ✅ Handle Edit Image click
         binding.ivEditImage.setOnClickListener {
             Toast.makeText(requireContext(), "Change image clicked!", Toast.LENGTH_SHORT).show()
         }
@@ -124,11 +87,10 @@ class EditProfileBottomSheet : BottomSheetDialogFragment() {
 
     override fun onDestroyView() {
         super.onDestroyView()
-        _binding = null // Prevent memory leaks
+        _binding = null
     }
 
     companion object {
-        // ✅ Static helper for creating instance with arguments
         fun newInstance(name: String?, email: String?, image: String?): EditProfileBottomSheet {
             val fragment = EditProfileBottomSheet()
             val args = Bundle().apply {

@@ -103,6 +103,8 @@ class SessionRepository {
                             if (it.teacherId == teacherId) {
                                 sessionList.add(it)
                                 Log.d("SessionRepository", "Loaded session: ${it.subject} in Room: $roomName")
+                                Log.d("SessionRepository","Session${session.sessionStatus}")
+
                             }
                         }
                     }

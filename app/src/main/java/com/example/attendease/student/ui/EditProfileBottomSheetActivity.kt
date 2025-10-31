@@ -18,48 +18,15 @@ import kotlinx.coroutines.launch
 
 class EditProfileBottomSheetActivity : BottomSheetDialogFragment() {
 
-    // ✅ ViewBinding reference
     private var _binding: ActivityEditProfileBottomSheetBinding? = null
     private val binding get() = _binding!!
-
-    // ✅ Use lazy-loaded variables (read inside lifecycle)
     private var name: String? = null
 
-    override fun getTheme(): Int = R.style.AppTheme_BottomSheetDialog
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // ✅ Retrieve arguments safely here (before view creation)
         arguments?.let {
             name = it.getString("name")
-        }
-    }
-
-    override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
-        val dialog = super.onCreateDialog(savedInstanceState) as BottomSheetDialog
-        dialog.setOnShowListener { dialogInterface ->
-            val bottomSheetDialog = dialogInterface as BottomSheetDialog
-            val bottomSheet = bottomSheetDialog.findViewById<View>(
-                com.google.android.material.R.id.design_bottom_sheet
-            ) ?: return@setOnShowListener
-            setupBottomSheetBehavior(bottomSheet)
-        }
-        return dialog
-    }
-
-    private fun setupBottomSheetBehavior(bottomSheet: View) {
-        val behavior = BottomSheetBehavior.from(bottomSheet)
-        val displayMetrics = resources.displayMetrics
-        val screenHeight = displayMetrics.heightPixels
-        val topMarginPx = (50 * displayMetrics.density).toInt()
-
-        behavior.expandedOffset = topMarginPx
-        behavior.state = BottomSheetBehavior.STATE_EXPANDED
-
-        val layoutParams = bottomSheet.layoutParams
-        if (layoutParams.height == ViewGroup.LayoutParams.WRAP_CONTENT) {
-            layoutParams.height = screenHeight - topMarginPx
-            bottomSheet.layoutParams = layoutParams
         }
     }
 
@@ -90,8 +57,15 @@ class EditProfileBottomSheetActivity : BottomSheetDialogFragment() {
             lifecycleScope.launch {
                 val result = authRepository.updateUserFullName(newName)
                 if (result.isSuccess) {
-                    Toast.makeText(requireContext(), "Profile updated successfully!", Toast.LENGTH_SHORT).show()
-                    dismiss()
+                            androidx.appcompat.app.AlertDialog.Builder(requireContext())
+                                .setTitle("Profile Updated")
+                                .setMessage("Profile changed successfully!")
+                                .setCancelable(false)
+                                .setPositiveButton("OK") { dialog, _ ->
+                                    dialog.dismiss()
+                                    dismiss()
+                                }
+                                .show()
                 } else {
                     Toast.makeText(requireContext(), "Failed: ${result.exceptionOrNull()?.message}", Toast.LENGTH_SHORT).show()
                 }
@@ -106,7 +80,6 @@ class EditProfileBottomSheetActivity : BottomSheetDialogFragment() {
     }
 
     companion object {
-        // ✅ Static helper for creating instance with arguments
         fun newInstance(name: String?): EditProfileBottomSheetActivity {
             val fragment = EditProfileBottomSheetActivity()
             val args = Bundle().apply {

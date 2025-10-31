@@ -15,6 +15,8 @@ class AttendanceAdapter(
     private var attendanceList: List<AttendanceRecord>,
     private val onMarkPresentClick: ((AttendanceRecord) -> Unit)? = null
 ) : RecyclerView.Adapter<AttendanceAdapter.AttendanceViewHolder>() {
+    private var filteredList: List<AttendanceRecord> = attendanceList
+    var onEmptyStateChange: ((Boolean) -> Unit)? = null
 
     inner class AttendanceViewHolder(val binding: AttendanceCardBinding) :
         RecyclerView.ViewHolder(binding.root) {
@@ -66,7 +68,8 @@ class AttendanceAdapter(
 
                     record.confidence?.contains("Left geofence", ignoreCase = true) == true -> {
                         // 🔴 Partial because student left geofence area
-                        val outsideInfo = record.outsideTimeDisplay ?: "${record.totalOutsideTime ?: 0} min outside"
+                        val outsideInfo = record.outsideTimeDisplay
+                            ?: "${record.totalOutsideTime ?: 0} min outside"
                         tvStatusText.text = "Partial — Left geofence area ($outsideInfo)"
                         tvStatusText.setTextColor(Color.parseColor("#E76F51")) // red-orange
                     }
@@ -89,8 +92,10 @@ class AttendanceAdapter(
                     when {
                         it.contains("QR", ignoreCase = true) ->
                             ContextCompat.getColor(root.context, R.color.green_badge)
+
                         it.contains("Medium", ignoreCase = true) ->
                             ContextCompat.getColor(root.context, R.color.dark_background)
+
                         else -> Color.GRAY
                     }
                 )
@@ -108,14 +113,31 @@ class AttendanceAdapter(
     }
 
     override fun onBindViewHolder(holder: AttendanceViewHolder, position: Int) {
-        holder.bind(attendanceList[position])
+        holder.bind(filteredList[position])
     }
 
-    override fun getItemCount(): Int = attendanceList.size
+    override fun getItemCount(): Int = filteredList.size
 
     @SuppressLint("NotifyDataSetChanged")
     fun updateData(newList: List<AttendanceRecord>) {
         attendanceList = newList
+        filteredList = newList
         notifyDataSetChanged()
+        onEmptyStateChange?.invoke(filteredList.isEmpty())
+    }
+
+    @SuppressLint("NotifyDataSetChanged")
+    fun filter(query: String) {
+        filteredList = if (query.isBlank()) {
+            attendanceList
+        } else {
+            attendanceList.filter { record ->
+                record.name?.contains(query, ignoreCase = true) == true ||
+                        record.status?.contains(query, ignoreCase = true) == true ||
+                        record.timeScanned?.contains(query, ignoreCase = true) == true
+            }
+        }
+        notifyDataSetChanged()
+        onEmptyStateChange?.invoke(filteredList.isEmpty())
     }
 }

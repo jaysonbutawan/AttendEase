@@ -5,7 +5,8 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@android:color/white"
-    tools:context=".student.ui.JoinClassFragmentActivity">
+    android:animateLayoutChanges="true"
+    tools:context=".student.ui.JoinClassBottomSheet">
 
     <!-- Scrollable Content -->
     <ScrollView

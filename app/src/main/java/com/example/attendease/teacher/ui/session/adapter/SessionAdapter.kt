@@ -2,7 +2,7 @@ package com.example.attendease.teacher.ui.session.adapter
 
 import android.annotation.SuppressLint
 import android.view.LayoutInflater
-import android.view.View // <-- NEW IMPORT for View.GONE/View.VISIBLE
+import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import com.example.attendease.teacher.data.model.ClassSession
@@ -20,48 +20,47 @@ class SessionAdapter(
         @SuppressLint("SetTextI18n")
         fun bind(session: ClassSession) {
             with(binding) {
-                // 1. Existing Data Binding
+                // Existing bindings
                 tvSubjectName.text = session.subject
                 tvRoomCode.text = session.roomName ?: session.roomId
                 tvTime.text = "${session.startTime} - ${session.endTime}"
 
-                // 2. Start Class Button Click (Existing Logic)
+                //  Set button text based on session status
+                if (session.sessionStatus == "started") {
+                    startClassButton.text = "Started"
+                    startClassButton.isEnabled = true
+                    startClassButton.alpha = 0.8f
+                } else {
+                    startClassButton.text = "Start Class"
+                    startClassButton.isEnabled = true
+                    startClassButton.alpha = 1.0f
+                }
+
+                // Start Class button click
                 startClassButton.setOnClickListener {
                     onStartClassClick(session)
                 }
-                optionEdit.setOnClickListener {
-                    onEditClick(session)
-                }
-                optionDelete.setOnClickListener {
-                    onDeleteClick(session)
-                }
 
-                // 3. Long Press Listener: Toggles visibility of the options menu
-                // This will show/hide the pop-up card when the main card is long-pressed.
+                // Edit and delete buttons
+                optionEdit.setOnClickListener { onEditClick(session) }
+                optionDelete.setOnClickListener { onDeleteClick(session) }
+
+                // Long-click to toggle options menu
                 sessionMainCard.setOnLongClickListener {
-                    // Toggle visibility of the menu card
-                    if (sessionOptionsPopup.visibility == View.GONE) {
-                        sessionOptionsPopup.visibility = View.VISIBLE
-                    } else {
-                        sessionOptionsPopup.visibility = View.GONE
-                    }
-                    true // Consume the long-click event
+                    sessionOptionsPopup.visibility =
+                        if (sessionOptionsPopup.visibility == View.GONE) View.VISIBLE else View.GONE
+                    true
                 }
 
-                // 4. Short Click Listener: If the menu is visible, a short click anywhere
-                // on the main card will hide it.
+                // Short-click to hide menu if visible
                 sessionMainCard.setOnClickListener {
                     if (sessionOptionsPopup.visibility == View.VISIBLE) {
                         sessionOptionsPopup.visibility = View.GONE
                     }
-                    // Primary action remains the Start button.
                 }
-
-                // NOTE: The click listeners for optionEdit and optionDelete are omitted
-                // since the adapter constructor no longer provides the required lambda functions.
-                // You will need to add these back if you want those buttons to perform actions.
             }
         }
+
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): SessionViewHolder {

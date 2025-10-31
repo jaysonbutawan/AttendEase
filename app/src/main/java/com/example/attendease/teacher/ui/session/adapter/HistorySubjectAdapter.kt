@@ -1,5 +1,6 @@
 package com.example.attendease.teacher.ui.session.adapter
 
+import android.annotation.SuppressLint
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
@@ -7,9 +8,12 @@ import com.example.attendease.databinding.HistorySubjectItemCardBinding
 import com.example.attendease.teacher.data.model.ClassSession
 
 class HistorySubjectAdapter(
-    private val subjectList: List<ClassSession>,
+    private var subjectList: List<ClassSession>,
     private val onSubjectClick: (ClassSession) -> Unit
 ) : RecyclerView.Adapter<HistorySubjectAdapter.SubjectViewHolder>() {
+
+    private var filteredList: List<ClassSession> = subjectList
+    var onEmptyStateChange: ((Boolean) -> Unit)? = null
 
     inner class SubjectViewHolder(private val binding: HistorySubjectItemCardBinding) :
         RecyclerView.ViewHolder(binding.root) {
@@ -34,8 +38,31 @@ class HistorySubjectAdapter(
     }
 
     override fun onBindViewHolder(holder: SubjectViewHolder, position: Int) {
-        holder.bind(subjectList[position])
-    }
+            holder.bind(filteredList[position])
+        }
 
-    override fun getItemCount(): Int = subjectList.size
-}
+        override fun getItemCount(): Int = filteredList.size
+
+
+        @SuppressLint("NotifyDataSetChanged")
+        fun updateData(newList: List<ClassSession>) {
+            subjectList = newList
+            filteredList = newList
+            notifyDataSetChanged()
+        }
+
+        @SuppressLint("NotifyDataSetChanged")
+        fun filter(query: String) {
+            filteredList = if (query.isBlank()) {
+                subjectList
+            } else {
+                subjectList.filter { session ->
+                    session.subject!!.contains(query, ignoreCase = true) ||
+                            session.subject?.contains(query, ignoreCase = true) == true
+                }
+            }
+
+            notifyDataSetChanged()
+            onEmptyStateChange?.invoke(filteredList.isEmpty())
+        }
+    }

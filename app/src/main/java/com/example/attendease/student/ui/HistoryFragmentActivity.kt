@@ -7,6 +7,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.core.view.isVisible
+import androidx.core.widget.addTextChangedListener
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -39,6 +40,15 @@ class HistoryFragmentActivity : Fragment() {
 
         // Load matched subjects from CSV
         viewModel.fetchMatchedSubjects()
+        binding.editSearchSubject.addTextChangedListener { editable ->
+            val query = editable?.toString()?.trim() ?: ""
+            adapter.filter(query)
+        }
+
+        // 🕳 Empty state toggle
+        adapter.onEmptyStateChange = { isEmpty ->
+            binding.textEmptyState?.isVisible = isEmpty
+        }
     }
 
     private fun setupRecyclerView() {
@@ -64,6 +74,7 @@ class HistoryFragmentActivity : Fragment() {
                 binding.recyclerViewSubjects.isVisible = true
                 adapter = SubjectAdapter(subjectList) { onSubjectClicked(it) }
                 binding.recyclerViewSubjects.adapter = adapter
+                adapter.updateData(subjectList)
             }
         }
 
@@ -75,10 +86,11 @@ class HistoryFragmentActivity : Fragment() {
     }
 
     private fun onSubjectClicked(session: Session) {
-        val attendanceFragment = AttendanceFragmentActivity().apply {
+        val attendanceFragment = AttendanceStatusBottomSheet().apply {
             arguments = Bundle().apply {
                 putString("roomId", session.roomId)
                 putString("sessionId", session.sessionId)
+                putString("subject",session.subject)
                 Log.d("History", "passs the ${session.room}")
                 Log.d("History","passs the ${session.sessionId}")
                 Log.d("History","pass the ${session.subject}")

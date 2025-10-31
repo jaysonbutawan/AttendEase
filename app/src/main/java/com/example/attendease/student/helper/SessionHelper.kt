@@ -107,6 +107,7 @@ object SessionHelper {
         }
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     suspend fun getSessionsWithAttendance(): List<Session> = withContext(Dispatchers.IO) {
         val userId = currentUser?.uid ?: return@withContext emptyList()
         val sessionsWithAttendance = mutableListOf<Session>()

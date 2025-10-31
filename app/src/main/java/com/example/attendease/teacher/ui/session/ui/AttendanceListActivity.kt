@@ -1,7 +1,8 @@
 package com.example.attendease.teacher.ui.session.ui
 
 import android.os.Bundle
-import android.util.Log
+import android.view.View
+import androidx.core.widget.addTextChangedListener
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
@@ -29,23 +30,22 @@ class AttendanceListActivity : AppCompatActivity() {
 
         val subjectName = intent.getStringExtra("subjectName")
         val sessionDate = intent.getStringExtra("sessionDate")
-        val sessionId = intent.getStringExtra("sessionId")
-        val roomId = intent.getStringExtra("roomId")
+         sessionId = intent.getStringExtra("sessionId")
+         roomId = intent.getStringExtra("roomId")
 
-        Log.d("AttendanceList", "🎯 Subject=$subjectName | Session=$sessionId | Room=$roomId")
         setupUI(subjectName, sessionDate)
         setupRecyclerView()
         observeViewModel()
 
         if (sessionId != null && sessionDate != null) {
-            viewModel.fetchAttendanceList(roomId, sessionId,sessionDate)
+            viewModel.fetchAttendanceList(roomId, sessionId!!,sessionDate)
         } else {
             Toast.makeText(this, "Missing session ID and date", Toast.LENGTH_SHORT).show()
         }
-        adapter = AttendanceAdapter(emptyList()) { record ->
-            onConfirmPresentClick(record)
+        binding.editSearchStudent.addTextChangedListener{ editable ->
+            val query =editable?.toString()?.trim()?:""
+            adapter.filter(query)
         }
-
     }
 
     private fun setupUI(subject: String?, date: String?) {
@@ -54,29 +54,26 @@ class AttendanceListActivity : AppCompatActivity() {
     }
 
     private fun setupRecyclerView() {
-        adapter = AttendanceAdapter(emptyList())
-        binding.recyclerStudentList.layoutManager = LinearLayoutManager(this)
-        binding.recyclerStudentList.adapter = adapter
         adapter = AttendanceAdapter(emptyList()) { record ->
             onConfirmPresentClick(record)
+            binding.editSearchStudent.setText("")
         }
-
-    }
+        adapter.onEmptyStateChange = { isEmpty ->
+            binding.textEmptyState.visibility = if (isEmpty) View.VISIBLE else View.GONE
+        }
+        binding.recyclerStudentList.layoutManager = LinearLayoutManager(this)
+        binding.recyclerStudentList.adapter = adapter
+}
 
     private fun observeViewModel() {
         viewModel.attendanceList.observe(this) { students ->
-            Log.d("AttendanceList", "✅ Loaded ${students.size} students")
-
-            if (students.isEmpty()) {
-                Toast.makeText(this, "No attendance records found.", Toast.LENGTH_SHORT).show()
+            adapter.onEmptyStateChange = { isEmpty ->
+                binding.textEmptyState.visibility = if (isEmpty) View.VISIBLE else View.GONE
             }
-
             adapter.updateData(students)
         }
-
         viewModel.error.observe(this) { error ->
             error?.let {
-                Log.e("AttendanceList", "❌ $it")
                 Toast.makeText(this, "Error: $it", Toast.LENGTH_SHORT).show()
             }
         }

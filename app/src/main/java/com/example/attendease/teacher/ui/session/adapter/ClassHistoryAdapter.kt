@@ -10,9 +10,11 @@ import java.text.SimpleDateFormat
 import java.util.Locale
 
 class ClassHistoryAdapter(
-    private val classHistoryList: List<ClassSession>,
+    private var classHistoryList: List<ClassSession>,
     private val onItemClick: (ClassSession) -> Unit
 ) : RecyclerView.Adapter<ClassHistoryAdapter.ClassHistoryViewHolder>() {
+    private var filteredList: List<ClassSession> = classHistoryList
+    var onEmptyStateChange: ((Boolean) -> Unit)? = null
 
     inner class ClassHistoryViewHolder(val binding: ClassHistoryItemCardBinding) :
         RecyclerView.ViewHolder(binding.root) {
@@ -55,8 +57,49 @@ class ClassHistoryAdapter(
     }
 
     override fun onBindViewHolder(holder: ClassHistoryViewHolder, position: Int) {
-        holder.bind(classHistoryList[position])
+        holder.bind(filteredList[position])
     }
 
-    override fun getItemCount(): Int = classHistoryList.size
+    override fun getItemCount(): Int = filteredList.size
+
+
+    @SuppressLint("NotifyDataSetChanged")
+    fun updateData(newList: List<ClassSession>) {
+        classHistoryList = newList
+        filteredList = newList
+        notifyDataSetChanged()
+    }
+
+    @SuppressLint("NotifyDataSetChanged")
+    fun filter(query: String) {
+        filteredList = if (query.isBlank()) {
+            classHistoryList
+        } else {
+            classHistoryList.filter { session ->
+                val rawDate = session.date ?: ""
+                val formattedDate = try {
+                    val inputFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+                    val outputFormat = SimpleDateFormat("MMMM dd, yyyy", Locale.getDefault())
+                    val parsedDate = inputFormat.parse(rawDate)
+                    parsedDate?.let { outputFormat.format(it) } ?: rawDate
+                } catch (e: Exception) {
+                    rawDate
+                }
+
+                val subjectMatch = session.subject?.contains(query, ignoreCase = true) == true
+                val dateMatch =
+                    rawDate.contains(query, ignoreCase = true) || formattedDate.contains(
+                        query,
+                        ignoreCase = true
+                    )
+                val startTimeMatch = session.startTime?.contains(query, ignoreCase = true) == true
+                val endTimeMatch = session.endTime?.contains(query, ignoreCase = true) == true
+
+                subjectMatch || dateMatch || startTimeMatch || endTimeMatch
+            }
+        }
+
+        notifyDataSetChanged()
+        onEmptyStateChange?.invoke(filteredList.isEmpty())
+    }
 }

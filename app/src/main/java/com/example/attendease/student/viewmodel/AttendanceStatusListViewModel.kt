@@ -1,6 +1,8 @@
 package com.example.attendease.student.viewmodel
 
+import android.os.Build
 import android.util.Log
+import androidx.annotation.RequiresApi
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
@@ -23,11 +25,7 @@ class AttendanceStatusListViewModel : ViewModel() {
     private val _emptyState = MutableLiveData<Boolean>()
     val emptyState: LiveData<Boolean> get() = _emptyState
 
-    /**
-     * Fetch the student's attendance records for a specific room and session.
-     * @param roomId The Firebase room ID (e.g., "-0_yqtrnFjIx62cfJb1z")
-     * @param sessionId The Firebase session ID (e.g., "-Oblt4YjdikYnV9ZzRBE")
-     */
+    @RequiresApi(Build.VERSION_CODES.O)
     fun fetchAttendanceForSession(roomId: String, sessionId: String) {
         _isLoading.value = true
         _errorMessage.value = null

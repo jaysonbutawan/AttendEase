@@ -11,7 +11,8 @@ import com.example.attendease.student.data.AttendanceStatus
 class AttendanceStatusAdapter(
     private var attendanceList: List<AttendanceStatus>
 ) : RecyclerView.Adapter<AttendanceStatusAdapter.AttendanceViewHolder>() {
-
+    private var filteredList: List<AttendanceStatus> = attendanceList
+    var onEmptyStateChange: ((Boolean) -> Unit)? = null
     inner class AttendanceViewHolder(private val binding: StudentAttendanceStatusCardBinding) :
         RecyclerView.ViewHolder(binding.root) {
 
@@ -20,11 +21,11 @@ class AttendanceStatusAdapter(
             binding.tvStatusBadge.text = status.statusText
 
             val colorRes = when (status.statusText?.lowercase()) {
-                "present" -> R.color.green_badge  // Green
-                "absent" -> R.color.red    // Red
-                "late" -> R.color.yellow     // Yellow/Orange
-                "partial" -> R.color.dark_background // Dark Orange
-                else -> android.R.color.darker_gray             // Default gray
+                "present" -> R.color.green_badge
+                "absent" -> R.color.red
+                "late" -> R.color.yellow
+                "partial" -> R.color.dark_background
+                else -> android.R.color.darker_gray
             }
 
             binding.tvStatusBadge.setBackgroundColor(
@@ -42,14 +43,29 @@ class AttendanceStatusAdapter(
     }
 
     override fun onBindViewHolder(holder: AttendanceViewHolder, position: Int) {
-        holder.bind(attendanceList[position])
-    }
+        holder.bind(filteredList[position])     }
 
-    override fun getItemCount(): Int = attendanceList.size
+    override fun getItemCount(): Int = filteredList.size
 
     @SuppressLint("NotifyDataSetChanged")
     fun updateData(newList: List<AttendanceStatus>) {
         attendanceList = newList
+        filteredList = newList
         notifyDataSetChanged()
+    }
+
+    @SuppressLint("NotifyDataSetChanged")
+    fun filter(query: String) {
+        filteredList = if (query.isBlank()) {
+            attendanceList
+        } else {
+            attendanceList.filter { item ->
+                item.statusText?.contains(query, ignoreCase = true) == true ||
+                        item.timeText?.contains(query, ignoreCase = true) == true
+            }
+        }
+
+        notifyDataSetChanged()
+        onEmptyStateChange?.invoke(filteredList.isEmpty())
     }
 }

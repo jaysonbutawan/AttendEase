@@ -44,7 +44,6 @@ class ScheduleFragmentActivity : Fragment() {
 
     private val TAG = "CSV_DEBUG"
 
-    // File picker launcher
     private val openCsvFileLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
@@ -183,7 +182,8 @@ class ScheduleFragmentActivity : Fragment() {
     // ------------------------------- //
 
     private fun cacheCsvData(fileName: String, data: List<Map<String, String>>) {
-        val prefs = requireContext().getSharedPreferences("csv_cache", Activity.MODE_PRIVATE)
+        val userId = currentUser?.uid ?: return
+        val prefs = requireContext().getSharedPreferences("csv_cache_$userId", Activity.MODE_PRIVATE)
         val dataString = data.joinToString(";") {
             "${it["subject"]},${it["room"]},${it["time"]},${it["instructor"]}"
         }
@@ -220,7 +220,12 @@ class ScheduleFragmentActivity : Fragment() {
                         binding.fileNameText.text =
                             if (snapshot.exists()) "Loaded from Firebase" else "No schedule found"
                         showLoadingState(false)
-                        if (snapshot.exists()) loadMatchedSessions()
+                        if (snapshot.exists()) {
+                            // 🔁 Cache it locally for next launch
+                            val scheduleList = snapshot.children.mapNotNull { it.value as? Map<String, String> }
+                            cacheCsvData("Firebase Backup", scheduleList)
+                            loadMatchedSessions()
+                        }
                     }
                     .addOnFailureListener { e ->
                         updateUploadUiState(false)
@@ -235,26 +240,51 @@ class ScheduleFragmentActivity : Fragment() {
         val userId = currentUser?.uid ?: return
         val userRef = database.child("users").child(userId)
 
-        lifecycleScope.launch(Dispatchers.IO) {
-            try {
-                userRef.child("schedule").removeValue().await()
-                userRef.child("csvFileName").removeValue().await()
+        // ✅ Show confirmation dialog before removing CSV
+        androidx.appcompat.app.AlertDialog.Builder(requireContext())
+            .setTitle("Remove CSV File")
+            .setMessage("Are you sure you want to remove the CSV file?")
+            .setPositiveButton("Yes") { dialog, _ ->
+                dialog.dismiss()
 
-                withContext(Dispatchers.Main) {
-                    requireContext().getSharedPreferences("csv_cache", Activity.MODE_PRIVATE)
-                        .edit { clear() }
+                lifecycleScope.launch(Dispatchers.IO) {
+                    try {
+                        // Remove schedule data from Firebase
+                        userRef.child("schedule").removeValue().await()
+                        userRef.child("csvFileName").removeValue().await()
 
-                    isCsvLoaded = false
-                    updateUploadUiState(false)
-                    clearRecyclerView()
-                    loadMatchedSessions()
-                    Log.d(TAG, "CSV data removed successfully")
+                        withContext(Dispatchers.Main) {
+                            // ✅ Clear the correct user-specific cache
+                            requireContext().getSharedPreferences("csv_cache_$userId", Activity.MODE_PRIVATE)
+                                .edit { clear() }
+
+                            // ✅ Clear any saved CSV filename from global prefs
+                            requireContext().getSharedPreferences("csv_prefs", Activity.MODE_PRIVATE)
+                                .edit { remove("csvFileName") }
+
+                            // ✅ Reset state and update UI
+                            isCsvLoaded = false
+                            uploadedCsvUri = null
+                            updateUploadUiState(false)
+                            clearRecyclerView()
+                            binding.fileNameText.text = "CSV removed"
+                            Log.d(TAG, "✅ CSV data and cache removed successfully")
+
+                            // Reload fragment data to ensure UI sync
+                            loadMatchedSessions()
+                        }
+                    } catch (e: Exception) {
+                        Log.e(TAG, "❌ Error deleting CSV data: ${e.message}", e)
+                    }
                 }
-            } catch (e: Exception) {
-                Log.e(TAG, "Error deleting CSV data: ${e.message}")
             }
-        }
+            .setNegativeButton("Cancel") { dialog, _ ->
+                dialog.dismiss()
+                Log.d(TAG, "❎ CSV removal canceled by user")
+            }
+            .show()
     }
+
 
     // ------------------------------- //
     // UI Updates
@@ -287,29 +317,59 @@ class ScheduleFragmentActivity : Fragment() {
 
     private fun loadMatchedSessions() {
         viewLifecycleOwner.lifecycleScope.launch {
-            showLoadingState(true)
-            val matchedSessions = SessionHelper.getMatchedSessions()
-            showLoadingState(false)
-
-            if (matchedSessions.isNotEmpty()) {
-                setupRecyclerView(matchedSessions.map { session ->
-                    session.copy(
-                        status = if (session.status == "Live") "Live" else "Upcoming"
-                    )
-                })
-            } else {
+            // ✅ Step 1: Check first if CSV is uploaded
+            if (!isCsvLoaded) {
+                showUploadCsvPrompt()
                 clearRecyclerView()
-                showNoClassesAvailableDialog()
+                return@launch
+            }
+            showLoadingState(true)
+            try {
+                val matchedSessions = SessionHelper.getMatchedSessions()
+
+                if (matchedSessions.isNotEmpty()) {
+                    setupRecyclerView(matchedSessions.map { session ->
+                        session.copy(
+                            status = if (session.status == "Live") "Live" else "Upcoming"
+                        )
+                    })
+                } else {
+                    clearRecyclerView()
+                    showNoClassesAvailableDialog()
+                }
+            } catch (e: Exception) {
+                Log.e("ScheduleFragment", "❌ Error loading matched sessions: ${e.message}", e)
+                clearRecyclerView()
+            } finally {
+                showLoadingState(false) // ✅ Step 3: Always hide progress bar
+                binding.swipeRefreshLayout.isRefreshing = false // Stop refresh spinner if active
             }
         }
     }
+
+    private fun showUploadCsvPrompt() {
+        if (!isAdded) return
+
+        androidx.appcompat.app.AlertDialog.Builder(requireContext())
+            .setTitle("CSV Required")
+            .setMessage("Please upload a CSV file to load your subjects and schedules.")
+            .setPositiveButton("Upload Now") { dialog, _ ->
+                dialog.dismiss()
+                openFileManager()
+            }
+            .setNegativeButton("Cancel") { dialog, _ ->
+                dialog.dismiss()
+            }
+            .show()
+    }
+
     private fun showNoClassesAvailableDialog() {
 
         if (!isAdded) return
 
         androidx.appcompat.app.AlertDialog.Builder(requireContext())
-            .setTitle("No Matching Classes Found")
-            .setMessage("We couldn't match any sessions from the server with the schedule you uploaded.")
+            .setTitle("No Classes Found")
+            .setMessage("No classes found with the schedule you uploaded.")
             .setPositiveButton("OK") { dialog, _ ->
                 dialog.dismiss()
             }

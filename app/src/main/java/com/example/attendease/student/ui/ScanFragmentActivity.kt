@@ -3,6 +3,7 @@ package com.example.attendease.student.ui
 import android.Manifest
 import android.annotation.SuppressLint
 import android.app.AlertDialog
+import android.content.Context
 import android.location.Location
 import android.os.Bundle
 import android.os.Looper
@@ -37,6 +38,8 @@ import com.google.mlkit.vision.common.InputImage
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
 
 class ScanFragmentActivity : Fragment() {
 
@@ -67,6 +70,10 @@ class ScanFragmentActivity : Fragment() {
 
     private var cameraProvider: ProcessCameraProvider? = null
     private var camera: Camera? = null
+    private var imageAnalysis: ImageAnalysis? = null
+
+    // NEW: dedicated executor for image analysis (shutdown on stop)
+    private var cameraExecutor: ExecutorService? = null
 
 
     private val cameraPermissionLauncher =
@@ -96,46 +103,75 @@ class ScanFragmentActivity : Fragment() {
         locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
         outsideDialog = OutsideDialog(requireContext())
 
+        if (cameraExecutor == null || cameraExecutor!!.isShutdown) {
+            cameraExecutor = Executors.newSingleThreadExecutor()
+        }
+
     }
     private fun startCamera() {
-        if (!scanningEnabled) {
-            binding.previewView.visibility = View.GONE  // hide camera preview
+        // Prevent reinitialization if camera already active
+        if (cameraProvider != null && camera != null) {
+            Log.d("CAMERA_STATE", "Camera already running, skipping reinit.")
             return
         }
 
-        binding.previewView.visibility = View.VISIBLE // show preview
+        if (!scanningEnabled || _binding == null) {
+            Log.d("CAMERA_STATE", "Camera start skipped: scanning disabled or binding null.")
+            return
+        }
+
+        binding.previewView.visibility = View.VISIBLE
+
         val cameraProviderFuture = ProcessCameraProvider.getInstance(requireContext())
         cameraProviderFuture.addListener({
-            cameraProvider = cameraProviderFuture.get()
+            try {
+                cameraProvider = cameraProviderFuture.get()
+                cameraProvider?.unbindAll()
 
-            val preview = Preview.Builder().build().apply {
-                surfaceProvider = binding.previewView.surfaceProvider
-            }
-
-            val analysis = ImageAnalysis.Builder()
-                .setOutputImageRotationEnabled(true)
-                .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-                .build()
-
-            analysis.setAnalyzer(ContextCompat.getMainExecutor(requireContext())) { imageProxy ->
-                if (scanningEnabled) {
-                    processImageProxy(imageProxy)
-                } else {
-                    imageProxy.close()
+                val preview = Preview.Builder().build().apply {
+                    surfaceProvider = binding.previewView.surfaceProvider
                 }
+
+                // CHANGED: keep reference to ImageAnalysis
+                imageAnalysis = ImageAnalysis.Builder()
+                    .setOutputImageRotationEnabled(true)
+                    .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+                    .build()
+
+                // CHANGED: use background executor for analyzer (not main executor)
+                val executor = cameraExecutor ?: ContextCompat.getMainExecutor(requireContext())
+                imageAnalysis?.setAnalyzer(executor) { imageProxy ->
+                    // Guard: close early if scanning disabled or binding gone
+                    if (!scanningEnabled || _binding == null) {
+                        try { imageProxy.close() } catch (_: Exception) {}
+                        return@setAnalyzer
+                    }
+                    processImageProxy(imageProxy)
+                }
+
+                camera = cameraProvider?.bindToLifecycle(
+                    viewLifecycleOwner,
+                    CameraSelector.DEFAULT_BACK_CAMERA,
+                    preview,
+                    imageAnalysis
+                )
+
+                Log.d("CAMERA_STATE", "Camera successfully started.")
+
+            } catch (e: Exception) {
+                Log.e("CAMERA_INIT", "Error initializing camera: ${e.message}")
             }
-
-            val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
-
-            cameraProvider?.unbindAll()
-
-            camera = cameraProvider?.bindToLifecycle(viewLifecycleOwner, cameraSelector, preview, analysis)
-
         }, ContextCompat.getMainExecutor(requireContext()))
     }
 
     @SuppressLint("UnsafeOptInUsageError")
     private fun processImageProxy(imageProxy: ImageProxy) {
+        // Additional guard just in case
+        if (!scanningEnabled || _binding == null) {
+            try { imageProxy.close() } catch (_: Exception) {}
+            return
+        }
+
         val mediaImage = imageProxy.image ?: run {
             imageProxy.close()
             return
@@ -145,13 +181,12 @@ class ScanFragmentActivity : Fragment() {
 
         scanner.process(inputImage)
             .addOnSuccessListener { barcodes ->
-                    for (barcode in barcodes) {
-                        barcode.rawValue?.let { qrValue ->
-                            Log.d("QR_SCAN", "Scanned: $qrValue")
-                            Toast.makeText(requireContext(), "Scanned: $qrValue", Toast.LENGTH_SHORT).show()
-                            handleQrScanned(qrValue)
-                            Toast.makeText(requireContext(), "on the way to handleqrScanned", Toast.LENGTH_SHORT).show()
-//                        }
+                for (barcode in barcodes) {
+                    barcode.rawValue?.let { qrValue ->
+                        Log.d("QR_SCAN", "Scanned: $qrValue")
+                        // Do NOT toast on every frame in production — heavy for UX; kept for debug.
+                        Toast.makeText(requireContext(), "Scanned: $qrValue", Toast.LENGTH_SHORT).show()
+                        handleQrScanned(qrValue)
                     }
                 }
             }
@@ -159,7 +194,7 @@ class ScanFragmentActivity : Fragment() {
                 Log.e("QR_SCAN", "Error scanning QR: ${e.message}")
             }
             .addOnCompleteListener {
-                imageProxy.close()
+                try { imageProxy.close() } catch (_: Exception) {}
             }
     }
 
@@ -458,8 +493,14 @@ class ScanFragmentActivity : Fragment() {
                         Toast.LENGTH_LONG
                     ).show()
                     showLoading(false)
-                    scanningEnabled = true
+
+                    // Prevent re-scan for this session
+                    scanningEnabled = false
+                    saveScanStatus(roomId, sessionId, true)
+
+                    stopCameraAndScanner()
                     binding.previewView.visibility = View.GONE
+
                     val dataToPass = Bundle().apply {
                         putString("status", finalStatus)
                         putString("timeScanned", currentTime)
@@ -482,6 +523,7 @@ class ScanFragmentActivity : Fragment() {
                     scanningEnabled = true
                 }
 
+
         } catch (e: Exception) {
             Log.e("ATTENDANCE_EXCEPTION", "Error marking attendance", e)
             Toast.makeText(requireContext(), "Unexpected error occurred.", Toast.LENGTH_SHORT).show()
@@ -489,6 +531,16 @@ class ScanFragmentActivity : Fragment() {
             scanningEnabled = true
         }
     }
+    private fun saveScanStatus(roomId: String, sessionId: String, scanned: Boolean) {
+        val prefs = requireContext().getSharedPreferences("ScanPrefs", Context.MODE_PRIVATE)
+        prefs.edit().putBoolean("${roomId}_$sessionId", scanned).apply()
+    }
+
+    private fun hasScannedForSession(roomId: String, sessionId: String): Boolean {
+        val prefs = requireContext().getSharedPreferences("ScanPrefs", Context.MODE_PRIVATE)
+        return prefs.getBoolean("${roomId}_$sessionId", false)
+    }
+
     @SuppressLint("MissingPermission")
     private fun startTrackingOutsideTime(roomId: String, sessionId: String, studentId: String) {
         val fused = LocationServices.getFusedLocationProviderClient(requireContext())
@@ -621,50 +673,92 @@ class ScanFragmentActivity : Fragment() {
 
 
     private fun navigateToJoinClass(dataToPass: Bundle) {
-        val joinClassFragment = JoinClassFragmentActivity()
+        val joinClassFragment = JoinClassBottomSheet()
         joinClassFragment.arguments = dataToPass
 
         (requireActivity() as StudentDashboardActivity).loadFragment("joinClass", dataToPass)
 
     }
 
-    override fun onDestroyView() {
-        super.onDestroyView()
-        cameraProvider?.unbindAll()
-        _binding = null
-        scanningEnabled = false
+    private fun stopCameraAndScanner() {
+        try {
+            scanningEnabled = false
+
+            // clear analyzer so it stops receiving frames
+            try {
+                imageAnalysis?.clearAnalyzer()
+            } catch (e: Exception) {
+                Log.e("CAMERA_STOP", "Error clearing analyzer: ${e.message}")
+            }
+
+            try {
+                cameraProvider?.unbindAll()
+            } catch (e: Exception) {
+                Log.e("CAMERA_STOP", "Error unbinding camera: ${e.message}")
+            }
+
+            camera = null
+            imageAnalysis = null
+
+            // shutdown executor
+            try {
+                cameraExecutor?.shutdownNow()
+            } catch (e: Exception) {
+                Log.e("CAMERA_STOP", "Error shutting down executor: ${e.message}")
+            }
+            cameraExecutor = null
+
+            Log.d("CAMERA_STATE", "Camera and scanner stopped manually.")
+        } catch (e: Exception) {
+            Log.e("CAMERA_STOP_ERROR", "Error stopping camera: ${e.message}")
+        }
     }
 
     override fun onPause() {
         super.onPause()
-        try {
-            ProcessCameraProvider.getInstance(requireContext()).get().unbindAll()
-        } catch (_: Exception) {}
-        cameraProvider?.unbindAll()
+        // Stop scanning when fragment is not visible
+        stopCameraAndScanner()
+        Log.d("CAMERA_STATE", "Camera paused and released.")
     }
+
     override fun onResume() {
         super.onResume()
-        database.get().addOnSuccessListener { snapshot ->
-            if (scanningEnabled && binding.progressBar.visibility == View.GONE) {
-                startCamera() // Re-bind the camera
-            }
-            for (roomSnapshot in snapshot.children) {
-                val sessions = roomSnapshot.child("sessions")
-                for (session in sessions.children) {
-                    val sessionStatus = session.child("status").getValue(String::class.java) ?: "ended"
-                    val attendanceSnapshot = session.child("attendance")
-                        .child(FirebaseAuth.getInstance().currentUser?.uid ?: "NO_USER")
 
-                    scanningEnabled = sessionStatus == "ended" || !attendanceSnapshot.exists()
-                    binding.previewView.visibility = if (scanningEnabled) View.VISIBLE else View.GONE
-                }
+        if (isVisible && _binding != null) {
+            scanningEnabled = true
+
+            // reinitialize executor if needed
+            if (cameraExecutor == null || cameraExecutor!!.isShutdown) {
+                cameraExecutor = Executors.newSingleThreadExecutor()
             }
+
+            // Rebind the camera safely
+            ProcessCameraProvider.getInstance(requireContext()).addListener({
+                try {
+                    val provider = ProcessCameraProvider.getInstance(requireContext()).get()
+                    if (provider != null && scanningEnabled) {
+                        cameraProvider = provider
+                        startCamera()
+                        Log.d("CAMERA_STATE", "Camera reinitialized on resume.")
+                    }
+                } catch (e: Exception) {
+                    Log.e("CAMERA_INIT", "Error restarting camera: ${e.message}")
+                }
+            }, ContextCompat.getMainExecutor(requireContext()))
         }
 
+        // Warm-up GPS asynchronously to improve first scan time
         getLocation { location ->
             Log.d("QR_SCAN", "Warm-up GPS: ${location?.latitude}, ${location?.longitude}")
         }
     }
 
+    override fun onDestroyView() {
+        super.onDestroyView()
+        // ensure camera cleaned
+        stopCameraAndScanner()
 
+        _binding = null
+        Log.d("CAMERA_STATE", "Camera and binding fully destroyed.")
+    }
 }

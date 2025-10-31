@@ -1,18 +1,21 @@
 package com.example.attendease.student.ui
 
+import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.fragment.app.Fragment
+import androidx.annotation.RequiresApi
+import androidx.core.widget.addTextChangedListener
 import androidx.fragment.app.viewModels
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.attendease.databinding.FragmentAttendanceActivityBinding
 import com.example.attendease.student.adapter.AttendanceStatusAdapter
 import com.example.attendease.student.viewmodel.AttendanceStatusListViewModel
+import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 
-class AttendanceFragmentActivity : Fragment() {
+class AttendanceStatusBottomSheet : BottomSheetDialogFragment() {
 
     private var _binding: FragmentAttendanceActivityBinding? = null
     private val binding get() = _binding!!
@@ -22,13 +25,17 @@ class AttendanceFragmentActivity : Fragment() {
 
     private var roomId: String? = null
     private var sessionId: String? = null
+    private var subject: String? =null
 
+    // --- Lifecycle Methods ---
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        // Retain the logic for retrieving arguments
         roomId = arguments?.getString("roomId")
         sessionId = arguments?.getString("sessionId")
+        subject = arguments?.getString("subject")
         Log.d("Attendance","get the room $roomId")
     }
 
@@ -40,20 +47,27 @@ class AttendanceFragmentActivity : Fragment() {
         return binding.root
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
         setupRecyclerView()
         observeViewModel()
 
-        // ✅ Fetch attendance only if both IDs are provided
         if (!roomId.isNullOrEmpty() && !sessionId.isNullOrEmpty()) {
             viewModel.fetchAttendanceForSession(roomId!!, sessionId!!)
         } else {
             binding.textEmptyState.text = "Missing room or session information."
             binding.textEmptyState.visibility = View.VISIBLE
         }
-    }
+        adapter.onEmptyStateChange = { isEmpty ->
+            binding.textEmptyState.visibility = if (isEmpty) View.VISIBLE else View.GONE
+        }
+
+        binding.textHeader.text ="$subject"}
+
+
+    // --- Private Methods (Main Functionalities Unchanged) ---
 
     private fun setupRecyclerView() {
         adapter = AttendanceStatusAdapter(emptyList())
@@ -62,6 +76,7 @@ class AttendanceFragmentActivity : Fragment() {
     }
 
     private fun observeViewModel() {
+        // Data observation remains on the main thread (Main Dispatcher)
         viewModel.attendanceList.observe(viewLifecycleOwner) { list ->
             adapter.updateData(list)
         }
@@ -81,6 +96,11 @@ class AttendanceFragmentActivity : Fragment() {
 
         viewModel.emptyState.observe(viewLifecycleOwner) { isEmpty ->
             binding.textEmptyState.visibility = if (isEmpty) View.VISIBLE else View.GONE
+        }
+
+        binding.editSearchSubject.addTextChangedListener { editable ->
+            val query = editable?.toString()?.trim() ?: ""
+            adapter.filter(query)
         }
     }
 

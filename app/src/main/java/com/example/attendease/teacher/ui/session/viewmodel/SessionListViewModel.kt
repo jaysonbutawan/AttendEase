@@ -1,5 +1,6 @@
 package com.example.attendease.teacher.ui.session.viewmodel
 
+import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
@@ -20,6 +21,7 @@ class SessionListViewModel : ViewModel() {
         repository.getSessions(
             onResult = { sessionList ->
                 _sessions.postValue(sessionList)
+
             },
             onError = { errorMessage ->
                 _error.postValue(errorMessage)

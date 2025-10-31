@@ -3,6 +3,7 @@ package com.example.attendease.teacher.ui.session.ui
 import android.annotation.SuppressLint
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import android.view.MotionEvent
 import android.widget.Toast
 import androidx.activity.viewModels
@@ -18,16 +19,12 @@ import com.google.firebase.database.FirebaseDatabase
 
 class ManageSessionActivity : AppCompatActivity() {
 
-    // View Binding for XML access
     private lateinit var binding: ManageClassScreenBinding
 
-    // Adapter for session list RecyclerView
     private lateinit var sessionAdapter: SessionAdapter
 
-    // ViewModel to manage session data
     private val sessionListViewModel: SessionListViewModel by viewModels()
 
-    // For draggable floating action button (FAB)
     private var dX = 0f
     private var dY = 0f
     private var lastAction = 0
@@ -97,7 +94,6 @@ class ManageSessionActivity : AppCompatActivity() {
 
     @SuppressLint("ClickableViewAccessibility")
     private fun setupButtons() {
-        // Floating Action Button — draggable + add new class
         binding.fabAdd.setOnTouchListener { view, event ->
             when (event.actionMasked) {
                 MotionEvent.ACTION_DOWN -> {
@@ -126,10 +122,9 @@ class ManageSessionActivity : AppCompatActivity() {
             }
         }
 
-        // Back button → navigate to dashboard
         binding.backBtn.setOnClickListener {
             startActivity(Intent(this, MainNavigationActivity::class.java))
-            finish() // Prevents returning to this screen with back press
+            finish()
         }
     }
 
@@ -152,7 +147,6 @@ class ManageSessionActivity : AppCompatActivity() {
 
         sessionRef.child("sessionStatus").setValue("started")
             .addOnSuccessListener {
-                Toast.makeText(this, "Class started!", Toast.LENGTH_SHORT).show()
                 openSessionActivity(roomId, sessionId)
             }
             .addOnFailureListener {
@@ -164,8 +158,6 @@ class ManageSessionActivity : AppCompatActivity() {
             Toast.makeText(this, "Invalid session data.", Toast.LENGTH_SHORT).show()
             return
         }
-
-        // 🔹 Confirmation dialog before deleting
         androidx.appcompat.app.AlertDialog.Builder(this)
             .setTitle("Delete Session")
             .setMessage("Are you sure you want to delete this session? This action cannot be undone.")
@@ -179,7 +171,7 @@ class ManageSessionActivity : AppCompatActivity() {
                 sessionRef.removeValue()
                     .addOnSuccessListener {
                         Toast.makeText(this, "Session deleted successfully.", Toast.LENGTH_SHORT).show()
-                        sessionListViewModel.loadSessions() // Refresh list
+                        sessionListViewModel.loadSessions()
                     }
                     .addOnFailureListener {
                         Toast.makeText(this, "Failed to delete session.", Toast.LENGTH_SHORT).show()

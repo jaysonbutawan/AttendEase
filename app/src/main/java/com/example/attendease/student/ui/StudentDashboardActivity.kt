@@ -6,6 +6,7 @@ import android.view.View
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.graphics.toColorInt
 import com.bumptech.glide.Glide
 import com.example.attendease.R
 import com.example.attendease.databinding.StudentDashboardScreenBinding
@@ -21,13 +22,14 @@ class StudentDashboardActivity : AppCompatActivity() {
     private var scanFragment: ScanFragmentActivity? = null
     private var profileFragment: ProfileFragmentActivity? = null
     private var historyFragment: HistoryFragmentActivity? = null
-    private var joinClassFragment: JoinClassFragmentActivity? = null
+    private var joinClassFragment: JoinClassBottomSheet? = null
 
     private lateinit var binding: StudentDashboardScreenBinding
     private val scope = CoroutineScope(Dispatchers.Main + Job())
 
     private var userListener: ValueEventListener? = null
     private lateinit var databaseRef: DatabaseReference
+    var foundRoomName: String? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -96,6 +98,8 @@ class StudentDashboardActivity : AppCompatActivity() {
                                 val name2 = room.child("roomName").getValue(String::class.java)
                                 if (name1 == liveClass.room || name2 == liveClass.room) {
                                     foundRoomId = room.key
+                                    foundRoomName =name1 ?:name2
+
                                     break
                                 }
                             }
@@ -121,11 +125,13 @@ class StudentDashboardActivity : AppCompatActivity() {
                             val attendanceSnap = attendanceRef.get().await()
                             val timeScanned = attendanceSnap.child("timeScanned").getValue(String::class.java) ?: "N/A"
 
+
                             // 🔹 Prepare arguments for JoinClassFragmentActivity
                             val dataToPass = Bundle().apply {
                                 putString("roomId", foundRoomId)
                                 putString("sessionId", sessionId)
                                 putString("timeScanned", timeScanned)
+                                putString("roomName",foundRoomName)
                                 putString("dateScanned", today)
                             }
 
@@ -171,7 +177,6 @@ class StudentDashboardActivity : AppCompatActivity() {
 
                 var updated = false // Track if any updates were made
 
-                // ✅ If fullname is missing, set it from Google
                 if (fullName.isNullOrEmpty() && !currentUser.displayName.isNullOrEmpty()) {
                     val googleName = currentUser.displayName!!
                     databaseRef.child("fullname").setValue(googleName)
@@ -278,13 +283,11 @@ class StudentDashboardActivity : AppCompatActivity() {
                 } else transaction.show(historyFragment!!)
             }
             "joinClass" -> {
-                if (joinClassFragment == null || args != null) { // Force recreation/update if new args are provided
-                    // Remove old instance if it exists and we're passing new data
+                if (joinClassFragment == null || args != null) {
                     joinClassFragment?.let { transaction.remove(it) }
 
-                    // Create new instance and apply arguments
-                    joinClassFragment = JoinClassFragmentActivity().apply {
-                        arguments = args // Set the arguments passed from the scan logic
+                    joinClassFragment = JoinClassBottomSheet().apply {
+                        arguments = args
                     }
                     transaction.add(R.id.fragmentContainer, joinClassFragment, "joinClass")
                 } else {
@@ -310,117 +313,93 @@ class StudentDashboardActivity : AppCompatActivity() {
         val roomsRef = database.getReference("rooms")
         val today = java.text.SimpleDateFormat("yyyy-MM-dd").format(java.util.Date())
 
-        // start refresh UI
         binding.swipeRefresh.isRefreshing = true
 
         scope.launch {
             try {
-                val sessions = SessionHelper.getMatchedSessions()
-                val liveClass = sessions.firstOrNull { it.status == "Live" }
+                // 🔹 Step 1: Run heavy work (Firebase reads) in background
+                val liveClassData = withContext(Dispatchers.IO) {
+                    val sessions = SessionHelper.getMatchedSessions()
+                    val liveClass = sessions.firstOrNull { it.status == "Live" } ?: return@withContext null
 
-                if (liveClass == null) {
-                    binding.onClassCard.visibility = View.GONE
-                    binding.swipeRefresh.isRefreshing = false
-                    return@launch
+                    val roomSnapshot = roomsRef.get().await()
+                    val foundRoomId = roomSnapshot.children.firstOrNull { room ->
+                        val name1 = room.child("name").getValue(String::class.java)
+                        val name2 = room.child("roomName").getValue(String::class.java)
+                        name1 == liveClass.room || name2 == liveClass.room
+                    }?.key ?: return@withContext null
+
+                    val sessionId = liveClass.sessionId
+                    val sessionRef = roomsRef.child(foundRoomId).child("sessions").child(sessionId)
+                    val sessionSnap = sessionRef.get().await()
+                    val sessionStatus = sessionSnap.child("sessionStatus").getValue(String::class.java)
+                        ?: sessionSnap.child("status").getValue(String::class.java)
+
+                    val attendanceRef = sessionRef.child("attendance").child(today).child(currentUser.uid)
+                    val attendanceSnap = attendanceRef.get().await()
+
+                    // Return everything in one data object
+                    Triple(liveClass, foundRoomId, Pair(sessionStatus, attendanceSnap.exists()))
                 }
 
-                binding.onClassCard.visibility = View.VISIBLE
-                binding.liveClassHeader.text = "${liveClass.subject}\nis live now in ${liveClass.room}"
-
-                // find the room id: try fields "name" and "roomName"
-                roomsRef.addListenerForSingleValueEvent(object : ValueEventListener {
-                    override fun onDataChange(roomSnapshot: DataSnapshot) {
-                        var foundRoomId: String? = null
-                        for (room in roomSnapshot.children) {
-                            val name1 = room.child("name").getValue(String::class.java)
-                            val name2 = room.child("roomName").getValue(String::class.java)
-                            if (name1 == liveClass.room || name2 == liveClass.room) {
-                                foundRoomId = room.key
-                                break
-                            }
-                        }
-
-                        if (foundRoomId == null) {
-                            // keep card visible (we already showed it) but can't verify attendance
-                            binding.joinNowBtn.text = "Join Now"
-                            binding.joinNowBtn.isEnabled = true
-                            binding.joinNowBtn.alpha = 1f
-                            binding.swipeRefresh.isRefreshing = false
-                            return
-                        }
-
-                        // now point at the session node under that room
-                        val sessionId = liveClass.sessionId
-                        val sessionRef = roomsRef.child(foundRoomId).child("sessions").child(sessionId)
-
-                        sessionRef.addListenerForSingleValueEvent(object : ValueEventListener {
-                            override fun onDataChange(sessionSnapshot: DataSnapshot) {
-                                val sessionStatus = sessionSnapshot.child("sessionStatus").getValue(String::class.java)
-                                    ?: sessionSnapshot.child("status").getValue(String::class.java)
-
-                                if (sessionStatus == "Live" || sessionStatus == "started" || sessionStatus == "Started") {
-                                    val attendanceExactRef = sessionRef.child("attendance").child(today).child(currentUser.uid)
-                                    attendanceExactRef.addListenerForSingleValueEvent(object : ValueEventListener {
-                                        override fun onDataChange(snapshot: DataSnapshot) {
-                                            if (snapshot.exists()) {
-                                                showJoinedState()
-                                            } else {
-                                                searchAttendanceFallback(sessionRef, currentUser.uid, today)
-                                            }
-                                            binding.swipeRefresh.isRefreshing = false
-                                        }
-
-                                        override fun onCancelled(error: DatabaseError) {
-                                            binding.swipeRefresh.isRefreshing = false
-                                        }
-                                    })
-                                } else {
-                                    binding.onClassCard.visibility = View.GONE
-                                    binding.joinNowBtn.isEnabled = false
-                                    binding.joinNowBtn.alpha = 0.5f
-                                    binding.swipeRefresh.isRefreshing = false
-                                }
-                            }
-
-                            override fun onCancelled(error: DatabaseError) {
-                                binding.swipeRefresh.isRefreshing = false
-                            }
-                        })
-                    }
-
-                    override fun onCancelled(error: DatabaseError) {
+                // 🔹 Step 2: Update UI on main thread
+                withContext(Dispatchers.Main) {
+                    if (liveClassData == null) {
+                        binding.onClassCard.visibility = View.GONE
                         binding.swipeRefresh.isRefreshing = false
+                        return@withContext
                     }
-                })
+
+                    val (liveClass, foundRoomId, sessionData) = liveClassData
+                    val (sessionStatus, attendanceExists) = sessionData
+
+                    binding.onClassCard.visibility = View.VISIBLE
+                    binding.liveClassHeader.text =
+                        "${liveClass.subject} is live now in ${liveClass.room}"
+
+                    if (sessionStatus.equals("Live", true) || sessionStatus.equals("Started", true)) {
+                        if (attendanceExists) {
+                            showJoinedState()
+                        } else {
+                            // fallback check (optional optimization retained)
+                            checkAttendanceFallback(foundRoomId, liveClass.sessionId, currentUser.uid, today)
+                        }
+                        binding.joinNowBtn.isEnabled = true
+                        binding.joinNowBtn.alpha = 1f
+                    } else {
+                        binding.onClassCard.visibility = View.GONE
+                        binding.joinNowBtn.isEnabled = false
+                        binding.joinNowBtn.alpha = 0.5f
+                    }
+
+                    binding.swipeRefresh.isRefreshing = false
+                }
             } catch (e: Exception) {
                 e.printStackTrace()
-                binding.onClassCard.visibility = View.GONE
-                binding.swipeRefresh.isRefreshing = false
+                withContext(Dispatchers.Main) {
+                    binding.onClassCard.visibility = View.GONE
+                    binding.swipeRefresh.isRefreshing = false
+                }
             }
         }
     }
 
-    private fun showJoinedState() {
-        binding.joinNowBtn.text = "Joined"
-        binding.joinNowBtn.isEnabled = true
-        binding.joinNowBtn.alpha = 0.6f
-    }
+    /**
+     * ✅ Optional fallback if attendance check didn't detect user entry
+     */
+    private fun checkAttendanceFallback(foundRoomId: String, sessionId: String, uid: String, today: String) {
+        val attendanceRef = FirebaseDatabase.getInstance()
+            .getReference("rooms/$foundRoomId/sessions/$sessionId/attendance/$today/$uid")
 
-    private fun searchAttendanceFallback(sessionRef: DatabaseReference, uid: String, today: String) {
-        sessionRef.child("attendance").addListenerForSingleValueEvent(object : ValueEventListener {
-            override fun onDataChange(attSnapshot: DataSnapshot) {
-                // ✅ Only proceed if today's date node exists
-                if (attSnapshot.hasChild(today)) {
-                    val userNode = attSnapshot.child(today).child(uid)
-                    if (userNode.exists()) {
-                        showJoinedState()
-                        return
-                    }
+        attendanceRef.addListenerForSingleValueEvent(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                if (snapshot.exists()) {
+                    showJoinedState()
+                } else {
+                    binding.joinNowBtn.text = "Join Now"
+                    binding.joinNowBtn.isEnabled = true
+                    binding.joinNowBtn.alpha = 1f
                 }
-
-                binding.joinNowBtn.text = "Join Now"
-                binding.joinNowBtn.isEnabled = true
-                binding.joinNowBtn.alpha = 1f
             }
 
             override fun onCancelled(error: DatabaseError) {
@@ -431,6 +410,11 @@ class StudentDashboardActivity : AppCompatActivity() {
         })
     }
 
+    private fun showJoinedState() {
+        binding.joinNowBtn.text = "Joined"
+        binding.joinNowBtn.isEnabled = true
+        binding.joinNowBtn.alpha = 0.6f
+    }
 
 
     override fun onDestroy() {

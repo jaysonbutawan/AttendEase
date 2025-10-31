@@ -3,12 +3,11 @@ package com.example.attendease.teacher.ui.session.ui
 import android.graphics.Bitmap
 import android.os.Bundle
 import android.os.Handler
-import android.util.Log
+import android.view.View
 import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.content.ContentProviderCompat.requireContext
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.attendease.databinding.SessionScreenBinding
 import com.example.attendease.teacher.data.model.AttendanceRecord
@@ -19,26 +18,20 @@ import com.example.attendease.teacher.ui.session.viewmodel.AttendanceListViewMod
 import com.example.attendease.teacher.ui.session.viewmodel.QrSessionViewModel
 import com.example.attendease.teacher.ui.session.viewmodel.SessionViewModelFactory
 import com.google.android.gms.tasks.Task
-import com.google.android.gms.tasks.Tasks
 import com.google.firebase.database.FirebaseDatabase
 
 class SessionActivity : AppCompatActivity() {
 
-    // View Binding for XML access
     private lateinit var binding: SessionScreenBinding
 
-    // RecyclerView Adapter for attendance list
     private lateinit var attendanceAdapter: AttendanceAdapter
 
-    // ViewModels
     private lateinit var qrSessionViewModel: QrSessionViewModel
     private val attendanceListViewModel: AttendanceListViewModel by viewModels()
 
-    // Handler for auto QR refresh
     private var qrHandler: Handler? = null
     private lateinit var qrRunnable: Runnable
 
-    // Session details
     private var roomId: String? = null
     private var sessionId: String? = null
 
@@ -105,7 +98,7 @@ class SessionActivity : AppCompatActivity() {
     private fun setupButtons() {
         // End Class Button
         binding.btnEndClass.setOnClickListener {
-            endSession()
+            showEndSessionConfirmationDialog()
         }
     }
 
@@ -162,6 +155,7 @@ class SessionActivity : AppCompatActivity() {
             binding.presentCount.text = "$presentCount"
             binding.tvOutsideCount.text = "$lateCount"
             binding.absentCount.text = "$absentCount"
+
         }
 
         // Observe errors separately
@@ -175,7 +169,21 @@ class SessionActivity : AppCompatActivity() {
     // End Session Handling
     // ---------------------------
 
-    private fun endSession() {
+    private fun showEndSessionConfirmationDialog() {
+        AlertDialog.Builder(this)
+            .setTitle("End Session")
+            .setMessage("Are you sure you want to end this session?")
+            .setPositiveButton("Yes") { dialog, _ ->
+                dialog.dismiss()
+                endSessionConfirmed() // call the actual end session logic here
+            }
+            .setNegativeButton("Cancel") { dialog, _ ->
+                dialog.dismiss()
+            }
+            .show()
+    }
+
+    private fun endSessionConfirmed() {
         val session = sessionId
         val room = roomId
 
@@ -197,12 +205,11 @@ class SessionActivity : AppCompatActivity() {
         sessionRef.child("sessionStatus").setValue("ended")
             .addOnSuccessListener {
                 Toast.makeText(this, "Class ended!", Toast.LENGTH_SHORT).show()
+                binding.endClassCard.visibility = View.GONE
                 qrHandler?.removeCallbacks(qrRunnable)
                 markAbsentForMissingStudents(room, session, session, currentDate)
 
-                // ✅ Optionally close the activity after a short delay
                 Handler(mainLooper).postDelayed({
-                    finish()
                 }, 2000)
             }
             .addOnFailureListener {
@@ -221,7 +228,6 @@ class SessionActivity : AppCompatActivity() {
 
         previousAttendanceRef.get().addOnSuccessListener { previousSnapshot ->
             if (!previousSnapshot.exists()) {
-                Log.w("AttendanceAuto", "⚠️ No previous attendance found for $previousSessionId")
                 return@addOnSuccessListener
             }
 
@@ -257,17 +263,8 @@ class SessionActivity : AppCompatActivity() {
                         absentTasks.add(task)
                     }
                 }
-
-                Tasks.whenAll(absentTasks).addOnCompleteListener {
-                    if (it.isSuccessful) {
-                        Log.i("AttendanceAuto", "✅ All absent students recorded successfully.")
-                    } else {
-                        Log.e("AttendanceAuto", "❌ Failed to record absents.", it.exception)
-                    }
-                }
             }
         }.addOnFailureListener { e ->
-            Log.e("AttendanceAuto", "❌ Error reading previous attendance", e)
         }
     }
 

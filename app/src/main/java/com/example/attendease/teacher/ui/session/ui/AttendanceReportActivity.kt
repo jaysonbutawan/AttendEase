@@ -3,9 +3,11 @@ package com.example.attendease.teacher.ui.session.ui
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
+import android.view.View
 import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.widget.addTextChangedListener
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.attendease.databinding.AttendanceReportScreenBinding
 import com.example.attendease.teacher.data.model.ClassSession
@@ -23,15 +25,9 @@ class AttendanceReportActivity : AppCompatActivity() {
         binding = AttendanceReportScreenBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        Log.d("AttendanceReport", "📄 onCreate: Activity started")
-
         setupRecyclerView()
-
-        // ✅ Get selected subject *inside* onCreate()
         val selectedSubject = intent.getStringExtra("selectedSubject")
-        Log.d("AttendanceReport", "🎯 Selected subject: $selectedSubject")
 
-        // ✅ Display it in the card
         if (!selectedSubject.isNullOrEmpty()) {
             binding.tvClassName.text = selectedSubject
         } else {
@@ -40,12 +36,23 @@ class AttendanceReportActivity : AppCompatActivity() {
 
         observeViewModel(selectedSubject)
         viewModel.fetchClassHistory()
+
+        binding.editSearchSubject.addTextChangedListener { editable ->
+            val query = editable?.toString()?.trim() ?: ""
+            adapter.filter(query)
+        }
     }
 
     private fun setupRecyclerView() {
         adapter = ClassHistoryAdapter(emptyList()) { session ->
             onSessionClicked(session)
+            binding.editSearchSubject.setText("")
+
         }
+        adapter.onEmptyStateChange = { isEmpty ->
+            binding.textEmptyState.visibility = if (isEmpty) View.VISIBLE else View.GONE
+        }
+
 
         binding.classHistoryContainer.layoutManager = LinearLayoutManager(this)
         binding.classHistoryContainer.adapter = adapter
@@ -72,6 +79,7 @@ class AttendanceReportActivity : AppCompatActivity() {
                 onSessionClicked(session)
             }
             binding.classHistoryContainer.adapter = adapter
+            adapter.updateData(filteredSessions)
         }
 
         viewModel.isLoading.observe(this) { isLoading ->
