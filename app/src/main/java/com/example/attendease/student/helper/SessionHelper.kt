@@ -58,13 +58,11 @@ object SessionHelper {
                     val sessionStatus = sessionSnap.child("sessionStatus").getValue(String::class.java)
                     val sessionId = sessionSnap.key ?: continue
 
-                    // ✅ Get teacher name
                     val teacherSnap = database.child("users").child(teacherId ?: "").get().await()
                     val instructorName = teacherSnap.child("fullname").getValue(String::class.java) ?: continue
 
                     val sessionFullTime = "$startTime - $endTime"
 
-                    // ✅ Check if student's schedule matches this session
                     val match = studentSchedule.any { entry ->
                         entry["subject"].equals(sessionSubject, true) &&
                                 entry["instructor"].equals(instructorName, true) &&

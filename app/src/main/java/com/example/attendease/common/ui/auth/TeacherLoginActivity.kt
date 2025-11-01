@@ -6,6 +6,7 @@ import android.os.Bundle
 import android.view.View
 import android.widget.RadioGroup
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.example.attendease.R
@@ -78,7 +79,14 @@ class TeacherLoginActivity : AppCompatActivity() {
         val password = binding.passwordEditText.text.toString().trim()
 
         if (email.isEmpty() || password.isEmpty()) {
-            Toast.makeText(this, "Please enter email and password", Toast.LENGTH_SHORT).show()
+            AlertDialog.Builder(this@TeacherLoginActivity)
+                .setTitle("Login Failed")
+                .setMessage("Please enter email and password")
+                .setPositiveButton("OK") { dialog, _ ->
+                    dialog.dismiss()
+                }
+                .setCancelable(true)
+                .show()
             return
         }
 
@@ -99,35 +107,58 @@ class TeacherLoginActivity : AppCompatActivity() {
                 startActivity(Intent(this@TeacherLoginActivity, MainNavigationActivity::class.java))
                 finish()
             }.onFailure { e ->
-                Toast.makeText(
-                    this@TeacherLoginActivity,
-                    "Email login failed: ${e.message}",
-                    Toast.LENGTH_LONG
-                ).show()
+                AlertDialog.Builder(this@TeacherLoginActivity)
+                    .setTitle("Login Failed")
+                    .setMessage("Your credentials is Invalid")
+                    .setPositiveButton("OK") { dialog, _ ->
+                        dialog.dismiss()
+                    }
+                    .setCancelable(true)
+                    .show()
             }
         }
     }
 
     private fun signUp(email: String, password: String) {
+        if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+            showInvalidEmailDialog()
+            return
+        }
         lifecycleScope.launch {
             val result = repository.signUpWithEmail(email, password, "teacher")
             result.onSuccess {
-                Toast.makeText(
-                    this@TeacherLoginActivity,
-                    "Account created successfully. Please sign in.",
-                    Toast.LENGTH_LONG
-                ).show()
+                AlertDialog.Builder(this@TeacherLoginActivity)
+                    .setTitle("Success")
+                    .setMessage("Your account successfully created")
+                    .setPositiveButton("OK") { dialog, _ ->
+                        dialog.dismiss()
+                    }
+                    .setCancelable(true)
+                    .show()
                 binding.toggleGroup.check(R.id.radio_sign_in)
                 updateUIForState(AuthState.SIGN_IN)
                 binding.passwordEditText.text.clear()
             }.onFailure { e ->
-                Toast.makeText(
-                    this@TeacherLoginActivity,
-                    "Signup failed: ${e.message}",
-                    Toast.LENGTH_LONG
-                ).show()
+                AlertDialog.Builder(this@TeacherLoginActivity)
+                    .setTitle("Login Failed")
+                    .setMessage("Your credentials is Invalid")
+                    .setPositiveButton("OK") { dialog, _ ->
+                        dialog.dismiss()
+                    }
+                    .setCancelable(true)
+                    .show()
             }
         }
+    }
+    private fun showInvalidEmailDialog() {
+        AlertDialog.Builder(this)
+            .setTitle("Invalid Email")
+            .setMessage("Please enter a valid email address before signing up.")
+            .setPositiveButton("OK") { dialog, _ ->
+                dialog.dismiss()
+            }
+            .setCancelable(true)
+            .show()
     }
 
     private fun handleGoogleSignIn() {

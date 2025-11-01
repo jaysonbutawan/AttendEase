@@ -8,6 +8,21 @@
     android:background="#FFFFFF"
     android:padding="16dp"
     tools:context=".teacher.ui.session.ui.ManageSessionActivity">
+    <androidx.cardview.widget.CardView
+        android:id="@+id/classInfoCard"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:cardCornerRadius="24dp"
+        app:cardElevation="4dp"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@drawable/student_rounded_button"
+            android:padding="20dp">
 
     <ImageButton
         android:id="@+id/backBtn"
@@ -15,6 +30,7 @@
         android:layout_height="wrap_content"
         android:src="@drawable/ic_back"
         android:background="@android:color/transparent"
+        app:tint="@android:color/white"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
@@ -26,37 +42,13 @@
         android:layout_marginStart="50dp"
         android:layout_marginTop="4dp"
         android:text="Upcoming Classes"
-        android:textColor="#000000"
+        android:textColor="@android:color/white"
         android:textSize="20sp"
         android:textStyle="bold"
         app:layout_constraintStart_toEndOf="@+id/backBtn"
         app:layout_constraintTop_toTopOf="parent" />
 
-    <TextView
-        android:id="@+id/todayLabel"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="@string/today"
-        android:textColor="@android:color/black"
-        android:textSize="20sp"
-        android:textStyle="bold"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintStart_toEndOf="@+id/upcomingClassesLabel"
-        app:layout_constraintEnd_toStartOf="@id/tvClassCount"
-        app:layout_constraintHorizontal_chainStyle="packed"/>
 
-    <TextView
-        android:id="@+id/tvClassCount"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="8dp"
-        android:text="3"
-        android:textColor="@android:color/holo_green_dark"
-        android:textSize="16sp"
-        android:layout_marginEnd="15dp"
-        app:layout_constraintStart_toEndOf="@+id/todayLabel"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
 
     <EditText
         android:id="@+id/edit_search_subject"
@@ -76,6 +68,9 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/upcomingClassesLabel"
         tools:ignore="Autofill,LabelFor,TextFields" />
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+    </androidx.cardview.widget.CardView>
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/class_session_container"
@@ -90,8 +85,8 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/edit_search_subject"
-        tools:listitem="@layout/attendance_card"/>
+        app:layout_constraintTop_toBottomOf="@id/classInfoCard"
+        tools:listitem="@layout/session_item_card"/>
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fabAdd"
@@ -104,6 +99,19 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:tint="@null"
         android:layout_margin="20dp" />
+    <TextView
+        android:id="@+id/text_empty_state"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="No students found"
+        android:textColor="@color/black"
+        android:textSize="16sp"
+        android:layout_gravity="center"
+        android:visibility="gone"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"/>
 
 
 

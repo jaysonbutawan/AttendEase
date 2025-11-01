@@ -3,11 +3,12 @@ package com.example.attendease.teacher.ui.session.ui
 import android.annotation.SuppressLint
 import android.content.Intent
 import android.os.Bundle
-import android.util.Log
 import android.view.MotionEvent
+import android.view.View
 import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.widget.addTextChangedListener
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.attendease.databinding.ManageClassScreenBinding
 import com.example.attendease.teacher.data.model.ClassSession
@@ -38,6 +39,10 @@ class ManageSessionActivity : AppCompatActivity() {
         setupRecyclerView()
         observeSessionList()
         setupButtons()
+        binding.editSearchSubject.addTextChangedListener { editable ->
+            val query = editable?.toString()?.trim() ?: ""
+            sessionAdapter.filter(query)
+        }
     }
 
     // ---------------------------
@@ -59,6 +64,9 @@ class ManageSessionActivity : AppCompatActivity() {
                 deleteSession(session.roomId, session.sessionId)
             }
         )
+        sessionAdapter.onEmptyStateChange = { isEmpty ->
+            binding.textEmptyState.visibility = if (isEmpty) View.VISIBLE else View.GONE
+        }
 
         binding.classSessionContainer.apply {
             layoutManager = LinearLayoutManager(this@ManageSessionActivity)
@@ -81,7 +89,7 @@ class ManageSessionActivity : AppCompatActivity() {
                 }
             )
             binding.classSessionContainer.adapter = sessionAdapter
-            binding.tvClassCount.text = "  ${sessions.size}"
+            sessionAdapter.updateData(sessions)
         }
 
         sessionListViewModel.error.observe(this) { error ->
@@ -112,7 +120,6 @@ class ManageSessionActivity : AppCompatActivity() {
                     true
                 }
                 MotionEvent.ACTION_UP -> {
-                    // Detect click (not drag)
                     if (lastAction == MotionEvent.ACTION_DOWN) {
                         showAddClassDialog()
                     }

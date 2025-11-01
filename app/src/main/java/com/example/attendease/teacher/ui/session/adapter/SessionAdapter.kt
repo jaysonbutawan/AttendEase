@@ -9,12 +9,13 @@ import com.example.attendease.teacher.data.model.ClassSession
 import com.example.attendease.databinding.SessionItemCardBinding
 
 class SessionAdapter(
-    private val sessionList: List<ClassSession>,
+    private var sessionList: List<ClassSession>,
     private val onStartClassClick: (ClassSession) -> Unit,
     private val onEditClick: (ClassSession) -> Unit,
     private val onDeleteClick: (ClassSession) -> Unit
 ) : RecyclerView.Adapter<SessionAdapter.SessionViewHolder>() {
-
+    private var filteredList: List<ClassSession> = sessionList
+    var onEmptyStateChange: ((Boolean) -> Unit)? = null
     inner class SessionViewHolder(val binding: SessionItemCardBinding) :
         RecyclerView.ViewHolder(binding.root) {
         @SuppressLint("SetTextI18n")
@@ -74,8 +75,34 @@ class SessionAdapter(
 
     @SuppressLint("SetTextI18n")
     override fun onBindViewHolder(holder: SessionViewHolder, position: Int) {
-        holder.bind(sessionList[position])
+        holder.bind(filteredList[position])
     }
 
-    override fun getItemCount(): Int = sessionList.size
+    override fun getItemCount(): Int = filteredList.size
+
+
+    @SuppressLint("NotifyDataSetChanged")
+    fun updateData(newList: List<ClassSession>) {
+        sessionList = newList
+        filteredList = newList
+        notifyDataSetChanged()
+    }
+
+    @SuppressLint("NotifyDataSetChanged")
+    fun filter(query: String) {
+        filteredList = if (query.isBlank()) {
+            sessionList
+        } else {
+            sessionList.filter { session ->
+                session.subject!!.contains(query, ignoreCase = true) ||
+                        session.subject?.contains(query, ignoreCase = true) == true||
+                        session.startTime?.contains(query, ignoreCase = true) == true ||
+                        session.endTime?.contains(query, ignoreCase = true) == true ||
+                        session.roomName?.contains(query, ignoreCase = true) == true
+            }
+        }
+
+        notifyDataSetChanged()
+        onEmptyStateChange?.invoke(filteredList.isEmpty())
+    }
 }

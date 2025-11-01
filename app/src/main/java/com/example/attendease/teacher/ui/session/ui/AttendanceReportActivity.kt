@@ -37,7 +37,7 @@ class AttendanceReportActivity : AppCompatActivity() {
         observeViewModel(selectedSubject)
         viewModel.fetchClassHistory()
 
-        binding.editSearchSubject.addTextChangedListener { editable ->
+        binding.editSearchStudent.addTextChangedListener { editable ->
             val query = editable?.toString()?.trim() ?: ""
             adapter.filter(query)
         }
@@ -46,7 +46,7 @@ class AttendanceReportActivity : AppCompatActivity() {
     private fun setupRecyclerView() {
         adapter = ClassHistoryAdapter(emptyList()) { session ->
             onSessionClicked(session)
-            binding.editSearchSubject.setText("")
+            binding.editSearchStudent.setText("")
 
         }
         adapter.onEmptyStateChange = { isEmpty ->

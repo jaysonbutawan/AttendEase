@@ -1,18 +1,16 @@
 package com.example.attendease.teacher.ui.profile
 
-import android.app.Dialog
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.lifecycle.lifecycleScope
 import com.bumptech.glide.Glide
 import com.example.attendease.R
 import com.example.attendease.common.firebase.AuthRepository
 import com.example.attendease.databinding.TeacherDialogEditProfileBinding
-import com.google.android.material.bottomsheet.BottomSheetBehavior
-import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
@@ -63,7 +61,14 @@ class EditProfileBottomSheet : BottomSheetDialogFragment() {
             val newName = binding.etEditName.text.toString().trim()
 
             if (newName.isEmpty()) {
-                Toast.makeText(requireContext(), "Name cannot be empty!", Toast.LENGTH_SHORT).show()
+                AlertDialog.Builder(requireContext())
+                    .setTitle("Empty Field")
+                    .setMessage("Please provide input before saving.")
+                    .setPositiveButton("OK") { dialog, _ ->
+                        dialog.dismiss()
+                    }
+                    .setCancelable(true)
+                    .show()
                 return@setOnClickListener
             }
 
@@ -72,7 +77,14 @@ class EditProfileBottomSheet : BottomSheetDialogFragment() {
             lifecycleScope.launch {
                 val result = authRepository.updateUserFullName(newName)
                 if (result.isSuccess) {
-                    Toast.makeText(requireContext(), "Profile updated successfully!", Toast.LENGTH_SHORT).show()
+                    AlertDialog.Builder(requireContext())
+                        .setTitle("Success")
+                        .setMessage("Successfully updated")
+                        .setPositiveButton("OK") { dialog, _ ->
+                            dialog.dismiss()
+                        }
+                        .setCancelable(true)
+                        .show()
                     dismiss()
                 } else {
                     Toast.makeText(requireContext(), "Failed: ${result.exceptionOrNull()?.message}", Toast.LENGTH_SHORT).show()

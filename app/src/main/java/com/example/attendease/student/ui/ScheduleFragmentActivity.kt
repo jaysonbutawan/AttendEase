@@ -317,7 +317,6 @@ class ScheduleFragmentActivity : Fragment() {
 
     private fun loadMatchedSessions() {
         viewLifecycleOwner.lifecycleScope.launch {
-            // ✅ Step 1: Check first if CSV is uploaded
             if (!isCsvLoaded) {
                 showUploadCsvPrompt()
                 clearRecyclerView()
@@ -338,11 +337,11 @@ class ScheduleFragmentActivity : Fragment() {
                     showNoClassesAvailableDialog()
                 }
             } catch (e: Exception) {
-                Log.e("ScheduleFragment", "❌ Error loading matched sessions: ${e.message}", e)
+                Log.e("ScheduleFragment", "Error loading matched sessions: ${e.message}", e)
                 clearRecyclerView()
             } finally {
-                showLoadingState(false) // ✅ Step 3: Always hide progress bar
-                binding.swipeRefreshLayout.isRefreshing = false // Stop refresh spinner if active
+                showLoadingState(false)
+                binding.swipeRefreshLayout.isRefreshing = false
             }
         }
     }

@@ -1,5 +1,6 @@
 [versions]
 agp = "8.13.0"
+alerter = "7.2.4"
 cardview = "1.0.0"
 circleimageview = "3.1.0"
 core = "3.5.3"
@@ -29,6 +30,7 @@ zxingAndroidEmbedded = "4.3.0"
 media3CommonKtx = "1.8.0"
 
 [libraries]
+alerter = { module = "com.github.tapadoo:alerter", version.ref = "alerter" }
 androidx-cardview = { module = "androidx.cardview:cardview", version.ref = "cardview" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 androidx-credentials = { module = "androidx.credentials:credentials", version.ref = "credentialsPlayServicesAuth" }

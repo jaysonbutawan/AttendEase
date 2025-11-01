@@ -58,24 +58,37 @@ class ProfileActivity : AppCompatActivity() {
             showEditProfileSheet()
         }
 
-        // Logout button click
         logoutButton.setOnClickListener {
-            try {
-                authRepository.signOut()
-                val intent = Intent(this@ProfileActivity, TeacherLoginActivity::class.java).apply {
-                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-                }
-                startActivity(intent)
-                finish()
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
+            showLogoutConfirmationDialog()
         }
     }
 
-    // ✅ Opens bottom sheet with user data
     private fun showEditProfileSheet() {
         val editProfileSheet = EditProfileBottomSheet.newInstance(name, email, image)
         editProfileSheet.show(supportFragmentManager, editProfileSheet.tag)
     }
+
+    private fun showLogoutConfirmationDialog() {
+        androidx.appcompat.app.AlertDialog.Builder(this)
+            .setTitle("Confirm Logout")
+            .setMessage("Are you sure you want to log out?")
+            .setPositiveButton("Logout") { _, _ ->
+                try {
+                    authRepository.signOut()
+                    val intent = Intent(this, TeacherLoginActivity::class.java).apply {
+                        flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                    }
+                    startActivity(intent)
+                    finish()
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+            .setNegativeButton("Cancel") { dialog, _ ->
+                dialog.dismiss()
+            }
+            .setCancelable(true)
+            .show()
+    }
+
 }
