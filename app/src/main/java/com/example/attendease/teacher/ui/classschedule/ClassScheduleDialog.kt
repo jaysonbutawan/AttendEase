@@ -5,7 +5,6 @@ import android.app.AlertDialog
 import android.app.TimePickerDialog
 import android.graphics.Color
 import android.os.Bundle
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -67,7 +66,7 @@ class ClassScheduleDialog : DialogFragment() {
             adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
             binding.spinnerRoom.adapter = adapter
 
-            // 🟢 Preselect the old room if editing an existing session
+            // Preselect the old room if editing an existing session
             oldRoomId?.let { id ->
                 val index = roomList.indexOfFirst { it.roomId == id }
                 if (index != -1) binding.spinnerRoom.setSelection(index)
@@ -98,7 +97,6 @@ class ClassScheduleDialog : DialogFragment() {
                     "Start" -> binding.startTimePicker.setText(formatted)
                     "End" -> binding.endTimePicker.setText(formatted)
                 }
-                Log.d("ClassScheduleDialog", "$label time picked: $formatted")
             }, hour, minute, false).show()
         }
     }
@@ -121,12 +119,12 @@ class ClassScheduleDialog : DialogFragment() {
         }
 
         if (sessionId.isNullOrEmpty()) {
-            // 🆕 CREATE NEW SESSION
+            // CREATE NEW SESSION
             createNewSession(subject, startTime, endTime, newRoomId)
         } else {
-            // 🟢 UPDATE EXISTING SESSION
+            // UPDATE EXISTING SESSION
             if (oldRoomId == newRoomId) {
-                updateExistingSession(oldRoomId!!, sessionId, subject, startTime, endTime)
+                updateExistingSession(oldRoomId, sessionId, subject, startTime, endTime)
             } else {
                 confirmRoomChange(oldRoomId!!, newRoomId, sessionId, subject, startTime, endTime)
             }
@@ -218,21 +216,17 @@ class ClassScheduleDialog : DialogFragment() {
             repo.createSession(session) { success, sessionKey ->
                 if (success) {
                     showAlertDialog("Success", "New session created successfully.")
-                    Log.d("ClassScheduleDialog", "Created session ID: $sessionKey")
                     dismiss()
                 } else {
                     showAlertDialog("Error", "Failed to create new session. Please try again.")
-                    Log.e("ClassScheduleDialog", "Failed to create new session")
                 }
             }
 
         }.addOnFailureListener {
             showAlertDialog("Error", "Failed to fetch room data: ${it.message}")
-            Log.e("ClassScheduleDialog", " Failed to fetch rooms: ${it.message}")
         }
 
         } catch (e: Exception) {
-            Log.e("ClassScheduleDialog", "Error: ${e.message}", e)
             showAlertDialog("Error", "Unexpected error: ${e.message}")
         }
     }
@@ -243,30 +237,123 @@ class ClassScheduleDialog : DialogFragment() {
             val format = java.text.SimpleDateFormat("hh:mm a", java.util.Locale.getDefault())
             val date = format.parse(time)
             val cal = Calendar.getInstance()
-            cal.time = date!!  // ✅ Correct way to set the time
+            cal.time = date!!  // Correct way to set the time
             cal.get(Calendar.HOUR_OF_DAY) * 60 + cal.get(Calendar.MINUTE)
         } catch (e: Exception) {
-            Log.e("ClassScheduleDialog", "❌ Failed to parse time: $time, ${e.message}")
             0
         }
     }
 
-    private fun updateExistingSession(roomId: String, sessionId: String, subject: String, start: String, end: String) {
-        val ref = FirebaseDatabase.getInstance()
-            .getReference("rooms")
-            .child(roomId)
-            .child("sessions")
-            .child(sessionId)
+    private fun updateExistingSession(
+        roomId: String,
+        sessionId: String,
+        subject: String,
+        startTime: String,
+        endTime: String
+    ) {
+        viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                if (startTime.isEmpty() || endTime.isEmpty()) {
+                    showAlertDialog("Invalid Time", "Please select both start and end times.")
+                    return@launch
+                }
 
-        val updates = mapOf("subject" to subject, "startTime" to start, "endTime" to end)
+                val newStart = parseTimeToMinutes(startTime)
+                val newEnd = parseTimeToMinutes(endTime)
 
-        ref.updateChildren(updates).addOnSuccessListener {
-            showAlertDialog("Success", "Session updated successfully")
-            dismiss()
-        }.addOnFailureListener {
-            Log.e("ClassScheduleDialog", "Failed to update session: ${it.message}")
+                // Validate logical order
+                if (newStart == newEnd || newStart > newEnd) {
+                    showAlertDialog("Invalid Schedule", "End time must be greater than start time.")
+                    return@launch
+                }
+
+                // Validate time format (e.g. 12:00 PM)
+                val timeFormatRegex = Regex("""^(0[1-9]|1[0-2]):[0-5][0-9]\s?(AM|PM)$""")
+                if (!timeFormatRegex.matches(startTime.uppercase()) || !timeFormatRegex.matches(endTime.uppercase())) {
+                    showAlertDialog("Invalid Time Format", "Please use valid time format (e.g. 12:00 AM, 01:30 PM).")
+                    return@launch
+                }
+
+                val dbRef = FirebaseDatabase.getInstance().getReference("rooms")
+
+                dbRef.get().addOnSuccessListener { roomsSnapshot ->
+                    var hasConflict = false
+                    var conflictDetails = ""
+
+                    val currentTeacherId = FirebaseAuth.getInstance().currentUser?.uid ?: ""
+
+                    // Loop through all rooms and sessions to check for conflicts
+                    roomsSnapshot.children.forEach { roomSnap ->
+                        roomSnap.child("sessions").children.forEach { sessionSnap ->
+                            val existingId = sessionSnap.key ?: ""
+                            if (existingId == sessionId) return@forEach // Skip the current session
+
+                            val existingSubject = sessionSnap.child("subject").getValue(String::class.java) ?: ""
+                            val existingStart = parseTimeToMinutes(sessionSnap.child("startTime").getValue(String::class.java) ?: "")
+                            val existingEnd = parseTimeToMinutes(sessionSnap.child("endTime").getValue(String::class.java) ?: "")
+                            val existingRoomId = roomSnap.key ?: ""
+                            val existingTeacherId = sessionSnap.child("teacherId").getValue(String::class.java) ?: ""
+
+                            val overlaps = (newStart < existingEnd && newEnd > existingStart)
+
+                            // Same room conflict
+                            if (existingRoomId == roomId && overlaps) {
+                                hasConflict = true
+                                conflictDetails = "Room selected already has a session between ${sessionSnap.child("startTime").value} and ${sessionSnap.child("endTime").value}."
+                                return@forEach
+                            }
+
+                            // Teacher double-booking
+                            if (existingTeacherId == currentTeacherId && overlaps) {
+                                hasConflict = true
+                                conflictDetails = "You already have another session during the selected time."
+                                return@forEach
+                            }
+
+                            // Same subject overlap
+                            if (existingSubject.equals(subject, ignoreCase = true) && overlaps) {
+                                hasConflict = true
+                                conflictDetails = "This subject overlaps with another schedule."
+                                return@forEach
+                            }
+                        }
+                        if (hasConflict) return@forEach
+                    }
+
+                    if (hasConflict) {
+                        showAlertDialog("Schedule Conflict", conflictDetails)
+                        return@addOnSuccessListener
+                    }
+
+                    // No conflict — proceed with update
+                    val updates = mapOf(
+                        "subject" to subject,
+                        "startTime" to startTime,
+                        "endTime" to endTime
+                    )
+
+                    dbRef.child(roomId)
+                        .child("sessions")
+                        .child(sessionId)
+                        .updateChildren(updates)
+                        .addOnSuccessListener {
+                            showAlertDialog("Success", "Session updated successfully")
+                            dismiss()
+                        }
+                        .addOnFailureListener {
+                            showAlertDialog("Error", "Failed to update session: ${it.message}")
+                        }
+
+                }.addOnFailureListener {
+                    showAlertDialog("Error", "Failed to fetch room data: ${it.message}")
+                }
+
+            } catch (e: Exception) {
+                showAlertDialog("Error", "Unexpected error: ${e.message}")
+            }
         }
     }
+
 
     private fun confirmRoomChange(oldRoomId: String, newRoomId: String, sessionId: String, subject: String, start: String, end: String) {
         AlertDialog.Builder(requireContext())
@@ -285,7 +372,6 @@ class ClassScheduleDialog : DialogFragment() {
 
         oldRef.get().addOnSuccessListener { snapshot ->
             if (!snapshot.exists()) {
-                Log.e("ClassScheduleDialog", "⚠️ Old session does not exist!")
                 return@addOnSuccessListener
             }
 
@@ -307,11 +393,7 @@ class ClassScheduleDialog : DialogFragment() {
                         dismiss()
                     }
                 }
-            }.addOnFailureListener {
-                Log.e("ClassScheduleDialog", "Failed to migrate session: ${it.message}")
             }
-        }.addOnFailureListener {
-            Log.e("ClassScheduleDialog", "Failed to get old session: ${it.message}")
         }
     }
     private fun showAlertDialog(title: String, message: String) {
