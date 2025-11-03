@@ -1,4 +1,4 @@
-package com.example.attendease.teacher.ui.classschedule.viewModel
+package com.example.attendease.teacher.ui.viewmodel
 
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData

@@ -7,7 +7,7 @@
     android:layout_height="match_parent"
     android:background="@android:color/transparent"
     android:visibility="visible"
-    tools:context=".teacher.ui.classschedule.ClassScheduleDialog">
+    tools:context=".teacher.ui.activity.ClassScheduleDialog">
 
     <!-- Form Container -->
     <LinearLayout

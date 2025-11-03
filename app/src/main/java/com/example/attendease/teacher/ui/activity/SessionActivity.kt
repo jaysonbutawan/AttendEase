@@ -1,4 +1,4 @@
-package com.example.attendease.teacher.ui.session.ui
+package com.example.attendease.teacher.ui.activity
 
 import android.graphics.Bitmap
 import android.os.Bundle
@@ -13,12 +13,16 @@ import com.example.attendease.databinding.SessionScreenBinding
 import com.example.attendease.teacher.data.model.AttendanceRecord
 import com.example.attendease.teacher.data.model.QrUtils
 import com.example.attendease.teacher.data.repositories.SessionRepository
-import com.example.attendease.teacher.ui.session.adapter.AttendanceAdapter
-import com.example.attendease.teacher.ui.session.viewmodel.AttendanceListViewModel
-import com.example.attendease.teacher.ui.session.viewmodel.QrSessionViewModel
-import com.example.attendease.teacher.ui.session.viewmodel.SessionViewModelFactory
+import com.example.attendease.teacher.ui.adapter.AttendanceAdapter
+import com.example.attendease.teacher.ui.viewmodel.AttendanceListViewModel
+import com.example.attendease.teacher.ui.viewmodel.QrSessionViewModel
+import com.example.attendease.teacher.ui.viewmodel.SessionViewModelFactory
 import com.google.android.gms.tasks.Task
 import com.google.firebase.database.FirebaseDatabase
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import kotlin.collections.iterator
 
 class SessionActivity : AppCompatActivity() {
 
@@ -199,8 +203,8 @@ class SessionActivity : AppCompatActivity() {
             .child(session)
 
         // ✅ Format current date
-        val dateFormatter = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault())
-        val currentDate = dateFormatter.format(java.util.Date())
+        val dateFormatter = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+        val currentDate = dateFormatter.format(Date())
 
         sessionRef.child("sessionStatus").setValue("ended")
             .addOnSuccessListener {
@@ -272,7 +276,7 @@ class SessionActivity : AppCompatActivity() {
 
     private fun showAttendanceBottomSheet(status: String) {
         val currentList = attendanceListViewModel.attendanceList.value ?: emptyList()
-        val bottomSheet = AttendanceListBottomSheet.newInstance(status, ArrayList(currentList))
+        val bottomSheet = AttendanceListBottomSheet.Companion.newInstance(status, ArrayList(currentList))
         bottomSheet.show(supportFragmentManager, "AttendanceListBottomSheet")
     }
      private fun onConfirmPresentClick(record: AttendanceRecord) {
@@ -288,8 +292,8 @@ class SessionActivity : AppCompatActivity() {
                 val session = sessionId ?: return@setPositiveButton
 
                 // ✅ Get today's date (to match how it’s stored in Firebase)
-                val dateFormatter = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault())
-                val currentDate = dateFormatter.format(java.util.Date())
+                val dateFormatter = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+                val currentDate = dateFormatter.format(Date())
 
                 // ✅ Updated call to include date parameter
                 attendanceListViewModel.updateAttendanceStatus(room, session, currentDate, record)

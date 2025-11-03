@@ -1,5 +1,4 @@
-package com.example.attendease.teacher.ui.session.ui
-
+package com.example.attendease.teacher.ui.activity
 
 import android.app.Dialog
 import android.os.Bundle
@@ -11,7 +10,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.attendease.R
 import com.example.attendease.databinding.AttendanceBottomSheetBinding
 import com.example.attendease.teacher.data.model.AttendanceRecord
-import com.example.attendease.teacher.ui.session.adapter.AttendanceAdapter
+import com.example.attendease.teacher.ui.adapter.AttendanceAdapter
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment

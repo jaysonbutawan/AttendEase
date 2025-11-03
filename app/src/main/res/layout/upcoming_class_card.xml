@@ -61,7 +61,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
-            android:drawableStart="@drawable/help"
+            android:drawableStart="@drawable/ic_room"
             android:drawablePadding="12dp"
             android:drawableTint="@android:color/black"
             android:text="CS-201"

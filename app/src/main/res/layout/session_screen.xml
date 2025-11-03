@@ -6,7 +6,7 @@
     android:layout_height="match_parent"
     android:fillViewport="true"
     android:background="@android:color/white"
-    tools:context=".teacher.ui.session.ui.SessionActivity">
+    tools:context=".teacher.ui.activity.SessionActivity">
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/main"

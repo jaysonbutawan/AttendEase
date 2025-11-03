@@ -1,4 +1,4 @@
-package com.example.attendease.teacher.ui.session.ui
+package com.example.attendease.teacher.ui.activity
 
 import android.content.Intent
 import android.os.Bundle
@@ -10,8 +10,8 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.widget.addTextChangedListener
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.attendease.databinding.ActivityHistorySubjectBinding
-import com.example.attendease.teacher.ui.session.adapter.HistorySubjectAdapter
-import com.example.attendease.teacher.ui.session.viewmodel.SessionListViewModel
+import com.example.attendease.teacher.ui.adapter.HistorySubjectAdapter
+import com.example.attendease.teacher.ui.viewmodel.SessionListViewModel
 
 class HistorySubjectActivity : AppCompatActivity() {
 
@@ -29,7 +29,7 @@ class HistorySubjectActivity : AppCompatActivity() {
         setupRecyclerView()
         observeViewModel()
         viewModel.loadSessions()
-        binding.editSearchSubject.addTextChangedListener { editable ->
+        binding.editSearchStudent.addTextChangedListener { editable ->
             val query = editable?.toString()?.trim() ?: ""
             adapter.filter(query)
         }

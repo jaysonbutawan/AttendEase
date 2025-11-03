@@ -202,51 +202,61 @@ class ScanFragmentActivity : Fragment() {
     private fun getLocation(onResult: (Location?) -> Unit) {
         val fused = LocationServices.getFusedLocationProviderClient(requireContext())
 
-        // 1. Try to get the last known location first (FASTEST)
+        // Start a timeout timer (30 seconds)
+        val timeoutMillis = 30000L
+        var callbackCalled = false
+
+        val timeoutHandler = android.os.Handler(Looper.getMainLooper())
+        timeoutHandler.postDelayed({
+            if (!callbackCalled) {
+                Log.w("LOCATION_TIMEOUT", "Location request timed out after 30 seconds.")
+                callbackCalled = true
+                onResult(null)
+            }
+        }, timeoutMillis)
+
+        // Try last known location first
         fused.lastLocation.addOnSuccessListener { lastLocation ->
-            // Check if last location is recent (within 30 seconds) and reasonably accurate (under 50m)
             val thirtySecondsAgo = System.currentTimeMillis() - 30000
             if (lastLocation != null && lastLocation.time > thirtySecondsAgo && lastLocation.accuracy < 50f) {
-                Log.d("USER_LOCATION_LOG", "Using fast Last Known Location.")
-                onResult(lastLocation)
+                Log.d("USER_LOCATION_LOG", "✅ Using fast last known location.")
+                if (!callbackCalled) {
+                    callbackCalled = true
+                    timeoutHandler.removeCallbacksAndMessages(null)
+                    onResult(lastLocation)
+                }
                 return@addOnSuccessListener
             }
 
-            // 2. If last location is not good, request a quick single update (FASTER)
-            // Request a single, high-priority update with a short timeout.
+            // Otherwise, request a fresh one
             val request = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 500L)
                 .setMaxUpdates(1)
                 .setMinUpdateIntervalMillis(500L)
-                .setDurationMillis(5000L) // Stop trying after 5 seconds to prevent long waits
+                .setDurationMillis(5000L)
                 .build()
 
             val callback = object : LocationCallback() {
                 override fun onLocationResult(result: LocationResult) {
-                    fused.removeLocationUpdates(this) // Stop updates after the first result
+                    fused.removeLocationUpdates(this)
+                    if (callbackCalled) return
+
                     val bestLocation = result.locations.minByOrNull { it.accuracy }
 
-                    Log.d(
-                        "USER_LOCATION_LOG",
-                        """ 
-                • Requested Update Location (Quick Fix).
-                • Latitude: ${bestLocation?.latitude}
-                • Longitude: ${bestLocation?.longitude}
-                • Accuracy: ${bestLocation?.accuracy} meters
-                • Provider: ${bestLocation?.provider}
-                • Timestamp: ${SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date(bestLocation?.time ?: 0))}
-                """.trimIndent()
-                    )
+                    // Check accuracy
+                    if (bestLocation != null && bestLocation.accuracy > 50f) {
+                        Log.w("LOCATION_ACCURACY", "⚠️ Location too inaccurate: ${bestLocation.accuracy}m")
+                    }
+
+                    callbackCalled = true
+                    timeoutHandler.removeCallbacksAndMessages(null)
                     onResult(bestLocation)
                 }
             }
+
             fused.requestLocationUpdates(request, callback, Looper.getMainLooper())
         }
-            .addOnFailureListener {
-                // Handle cases where even getLastLocation fails (e.g., location services disabled)
-                Log.e("LOCATION_ERROR", "Failed to get last location: ${it.message}")
-                onResult(null)
-            }
     }
+
 
 
     // --- Optimized handleQrScanned: Faster flow and exit conditions ---
@@ -259,12 +269,23 @@ class ScanFragmentActivity : Fragment() {
         // Helper function to reset state on failure or end of flow
         fun resetState(message: String? = null) {
             if (message != null) {
-                Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
+                requireActivity().runOnUiThread {
+                    AlertDialog.Builder(requireContext())
+                        .setTitle("Notice")
+                        .setMessage(message)
+                        .setCancelable(false)
+                        .setPositiveButton("OK") { dialog, _ ->
+                            dialog.dismiss()
+                        }
+                        .show()
+                }
             }
+
             scanningEnabled = true
             binding.previewView.visibility = View.VISIBLE // Re-enable the scanner view
             showLoading(false)
         }
+
 
         // --- OPTIMIZATION POINT 1: Efficiently locate the session and break the loop ---
         database.get().addOnSuccessListener { snapshot ->
@@ -340,11 +361,35 @@ class ScanFragmentActivity : Fragment() {
 
 
                 getLocation { location ->
-                    if (location == null) {
-                        resetState("Unable to get location.")
+                    // --- Handle missing or inaccurate location ---
+                    if (location == null || location.accuracy > 50f) {
+                        requireActivity().runOnUiThread {
+                            AlertDialog.Builder(requireContext())
+                                .setTitle("Location Issue")
+                                .setMessage(
+                                    if (location == null)
+                                        "We couldn’t get your location accurately. Would you like to try scanning again?"
+                                    else
+                                        "Your GPS accuracy is too low (${location.accuracy.toInt()}m). Would you like to rescan?"
+                                )
+                                .setCancelable(false)
+                                .setPositiveButton("Rescan") { dialog, _ ->
+                                    dialog.dismiss()
+                                    showLoading(false)
+                                    scanningEnabled = true
+                                    binding.previewView.visibility = View.VISIBLE
+                                    startCamera() // Restart scanning
+                                }
+                                .setNegativeButton("Cancel") { dialog, _ ->
+                                    dialog.dismiss()
+                                    showLoading(false)
+                                    scanningEnabled = true
+                                    binding.previewView.visibility = View.VISIBLE
+                                }
+                                .show()
+                        }
                         return@getLocation
                     }
-
                     val studentLatLng = LatLng(location.latitude, location.longitude)
                     val gpsAccuracy = location.accuracy // meters
 
@@ -541,64 +586,103 @@ class ScanFragmentActivity : Fragment() {
         return prefs.getBoolean("${roomId}_$sessionId", false)
     }
 
-    @SuppressLint("MissingPermission")
-    private fun startTrackingOutsideTime(roomId: String, sessionId: String, studentId: String) {
-        val fused = LocationServices.getFusedLocationProviderClient(requireContext())
-        val sessionRef = database.child(roomId).child("sessions").child(sessionId)
-        val attendanceRef = sessionRef
-            .child("attendance")
-            .child(SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date()))
-            .child(studentId)
+        @SuppressLint("MissingPermission")
+        private fun startTrackingOutsideTime(roomId: String, sessionId: String, studentId: String) {
+            val fused = LocationServices.getFusedLocationProviderClient(requireContext())
+            val sessionRef = database.child(roomId).child("sessions").child(sessionId)
+            val attendanceRef = sessionRef
+                .child("attendance")
+                .child(SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date()))
+                .child(studentId)
 
-        var outsideStartTime: Long? = null
-        var totalOutsideTime = 0L
-        var trackingActive = true
-        val polygonPoints = mutableListOf<LatLng>()
+            var outsideStartTime: Long? = null
+            var totalOutsideTime = 0L
+            var trackingActive = true
+            val polygonPoints = mutableListOf<LatLng>()
 
-        database.child(roomId).child("polygon").get().addOnSuccessListener { polygonSnapshot ->
-            for (point in polygonSnapshot.children) {
-                val lat = point.child("lat").getValue(Double::class.java)
-                val lng = point.child("lng").getValue(Double::class.java)
-                if (lat != null && lng != null) polygonPoints.add(LatLng(lat, lng))
-            }
+            database.child(roomId).child("polygon").get().addOnSuccessListener { polygonSnapshot ->
+                for (point in polygonSnapshot.children) {
+                    val lat = point.child("lat").getValue(Double::class.java)
+                    val lng = point.child("lng").getValue(Double::class.java)
+                    if (lat != null && lng != null) polygonPoints.add(LatLng(lat, lng))
+                }
 
-            if (polygonPoints.isEmpty()) return@addOnSuccessListener
+                if (polygonPoints.isEmpty()) return@addOnSuccessListener
 
-            val request = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 5000L)
-                .setMinUpdateIntervalMillis(5000L)
-                .setMaxUpdates(Int.MAX_VALUE)
-                .build()
+                val request = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 5000L)
+                    .setMinUpdateIntervalMillis(5000L)
+                    .setMaxUpdates(Int.MAX_VALUE)
+                    .build()
 
-            val callback = object : LocationCallback() {
-                override fun onLocationResult(result: LocationResult) {
-                    if (!trackingActive) return
+                val callback = object : LocationCallback() {
+                    override fun onLocationResult(result: LocationResult) {
+                        if (!trackingActive) return
 
-                    val location = result.lastLocation ?: return
-                    val studentLatLng = LatLng(location.latitude, location.longitude)
-                    val distance = LocationValidator.getDistanceFromPolygon(studentLatLng, polygonPoints)
-
-
-                    val newConfidence = when {
-                        distance > 10f -> "Partial - Left geofence area"
-                        else -> "High"
-                    }
-
-                    attendanceRef.child("confidence").setValue(newConfidence)
+                        val location = result.lastLocation ?: return
+                        val studentLatLng = LatLng(location.latitude, location.longitude)
+                        val distance = LocationValidator.getDistanceFromPolygon(studentLatLng, polygonPoints)
 
 
-                    if (distance > 10f) {
-                        if (outsideStartTime == null) {
-                            outsideStartTime = System.currentTimeMillis()
-                            requireActivity().runOnUiThread {
-                                if (!outsideDialog.isShowing()) outsideDialog.show(distance)
-                            }
+                        val newConfidence = when {
+                            distance > 10f -> "Partial - Left geofence area"
+                            else -> "High"
                         }
 
-                    } else {
-                        if (outsideStartTime != null) {
-                            val outsideDuration = System.currentTimeMillis() - outsideStartTime!!
-                            totalOutsideTime += outsideDuration
-                            outsideStartTime = null
+                        attendanceRef.child("confidence").setValue(newConfidence)
+
+
+                        if (distance > 10f) {
+                            if (outsideStartTime == null) {
+                                outsideStartTime = System.currentTimeMillis()
+                                requireActivity().runOnUiThread {
+                                    if (!outsideDialog.isShowing()) outsideDialog.show(distance)
+                                }
+                            }
+
+                        } else {
+                            if (outsideStartTime != null) {
+                                val outsideDuration = System.currentTimeMillis() - outsideStartTime!!
+                                totalOutsideTime += outsideDuration
+                                outsideStartTime = null
+
+                                val totalOutsideMinutes = (totalOutsideTime / 60000).toInt()
+                                val totalOutsideDisplay = formatDuration(totalOutsideTime)
+
+                                val updates = mapOf(
+                                    "totalOutsideTime" to totalOutsideMinutes,
+                                    "outsideTimeDisplay" to totalOutsideDisplay
+                                )
+
+                                attendanceRef.updateChildren(updates)
+                            }
+                            requireActivity().runOnUiThread {
+                                if (outsideDialog.isShowing()) outsideDialog.dismiss()
+                            }
+                        }
+                    }
+                }
+
+                fused.requestLocationUpdates(request, callback, Looper.getMainLooper())
+
+                sessionRef.child("sessionStatus").addValueEventListener(object : ValueEventListener {
+                    override fun onDataChange(snapshot: DataSnapshot) {
+                        val status = snapshot.getValue(String::class.java)
+                        if (status.equals("ended", ignoreCase = true)) {
+                            trackingActive = false
+                            fused.removeLocationUpdates(callback)
+                            scanningEnabled = true
+                            startCamera()
+                            Toast.makeText(requireContext(), "New session started. You can scan again.", Toast.LENGTH_SHORT).show()
+                            requireActivity().runOnUiThread {
+                                if (outsideDialog.isShowing()) outsideDialog.dismiss()
+                            }
+
+
+                            if (outsideStartTime != null) {
+                                val outsideDuration = System.currentTimeMillis() - outsideStartTime!!
+                                totalOutsideTime += outsideDuration
+                                outsideStartTime = null
+                            }
 
                             val totalOutsideMinutes = (totalOutsideTime / 60000).toInt()
                             val totalOutsideDisplay = formatDuration(totalOutsideTime)
@@ -608,56 +692,20 @@ class ScanFragmentActivity : Fragment() {
                                 "outsideTimeDisplay" to totalOutsideDisplay
                             )
 
-                            attendanceRef.updateChildren(updates)
-                        }
-                        requireActivity().runOnUiThread {
-                            if (outsideDialog.isShowing()) outsideDialog.dismiss()
+                            attendanceRef.updateChildren(updates).addOnSuccessListener {
+                                Toast.makeText(
+                                    requireContext(),
+                                    "Session Ended. Total Time Outside: $totalOutsideDisplay",
+                                    Toast.LENGTH_LONG
+                                ).show()
+                            }
                         }
                     }
-                }
+
+                    override fun onCancelled(error: DatabaseError) {}
+                })
             }
-
-            fused.requestLocationUpdates(request, callback, Looper.getMainLooper())
-
-            sessionRef.child("sessionStatus").addValueEventListener(object : ValueEventListener {
-                override fun onDataChange(snapshot: DataSnapshot) {
-                    val status = snapshot.getValue(String::class.java)
-                    if (status.equals("ended", ignoreCase = true)) {
-                        trackingActive = false
-                        fused.removeLocationUpdates(callback)
-                        requireActivity().runOnUiThread {
-                            if (outsideDialog.isShowing()) outsideDialog.dismiss()
-                        }
-
-
-                        if (outsideStartTime != null) {
-                            val outsideDuration = System.currentTimeMillis() - outsideStartTime!!
-                            totalOutsideTime += outsideDuration
-                            outsideStartTime = null
-                        }
-
-                        val totalOutsideMinutes = (totalOutsideTime / 60000).toInt()
-                        val totalOutsideDisplay = formatDuration(totalOutsideTime)
-
-                        val updates = mapOf(
-                            "totalOutsideTime" to totalOutsideMinutes,
-                            "outsideTimeDisplay" to totalOutsideDisplay
-                        )
-
-                        attendanceRef.updateChildren(updates).addOnSuccessListener {
-                            Toast.makeText(
-                                requireContext(),
-                                "Session Ended. Total Time Outside: $totalOutsideDisplay",
-                                Toast.LENGTH_LONG
-                            ).show()
-                        }
-                    }
-                }
-
-                override fun onCancelled(error: DatabaseError) {}
-            })
         }
-    }
 
 
     private fun formatDuration(ms: Long): String {
@@ -716,7 +764,6 @@ class ScanFragmentActivity : Fragment() {
 
     override fun onPause() {
         super.onPause()
-        // Stop scanning when fragment is not visible
         stopCameraAndScanner()
         Log.d("CAMERA_STATE", "Camera paused and released.")
     }
@@ -727,12 +774,9 @@ class ScanFragmentActivity : Fragment() {
         if (isVisible && _binding != null) {
             scanningEnabled = true
 
-            // reinitialize executor if needed
             if (cameraExecutor == null || cameraExecutor!!.isShutdown) {
                 cameraExecutor = Executors.newSingleThreadExecutor()
             }
-
-            // Rebind the camera safely
             ProcessCameraProvider.getInstance(requireContext()).addListener({
                 try {
                     val provider = ProcessCameraProvider.getInstance(requireContext()).get()
@@ -746,8 +790,6 @@ class ScanFragmentActivity : Fragment() {
                 }
             }, ContextCompat.getMainExecutor(requireContext()))
         }
-
-        // Warm-up GPS asynchronously to improve first scan time
         getLocation { location ->
             Log.d("QR_SCAN", "Warm-up GPS: ${location?.latitude}, ${location?.longitude}")
         }

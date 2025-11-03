@@ -1,4 +1,4 @@
-package com.example.attendease.teacher.ui.profile
+package com.example.attendease.teacher.ui.activity
 
 import android.os.Bundle
 import android.view.LayoutInflater

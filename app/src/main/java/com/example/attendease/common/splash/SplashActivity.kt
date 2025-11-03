@@ -10,7 +10,7 @@ import com.example.attendease.common.ui.auth.TeacherLoginActivity
 import com.example.attendease.common.ui.auth.StudentLoginActivity
 import com.example.attendease.databinding.SplashScreenBinding
 import com.example.attendease.student.ui.StudentDashboardActivity
-import com.example.attendease.teacher.ui.dashboard.MainNavigationActivity // Teacher Dashboard
+import com.example.attendease.teacher.ui.activity.MainNavigationActivity // Teacher Dashboard
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.FirebaseDatabase // Required to read role
 import com.google.android.material.card.MaterialCardView

@@ -1,18 +1,21 @@
-package com.example.attendease.teacher.ui.session.ui
+package com.example.attendease.teacher.ui.activity
 
 import android.os.Bundle
 import android.view.View
-import androidx.core.widget.addTextChangedListener
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.widget.addTextChangedListener
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.attendease.databinding.ActivityAttendanceListBinding
 import com.example.attendease.teacher.data.model.AttendanceRecord
-import com.example.attendease.teacher.ui.session.adapter.AttendanceAdapter
-import com.example.attendease.teacher.ui.session.viewmodel.AttendanceListViewModel
+import com.example.attendease.teacher.ui.adapter.AttendanceAdapter
+import com.example.attendease.teacher.ui.viewmodel.AttendanceListViewModel
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 class AttendanceListActivity : AppCompatActivity() {
 
@@ -42,7 +45,7 @@ class AttendanceListActivity : AppCompatActivity() {
         } else {
             Toast.makeText(this, "Missing session ID and date", Toast.LENGTH_SHORT).show()
         }
-        binding.editSearchStudent.addTextChangedListener{ editable ->
+        binding.editSearchStudent.addTextChangedListener { editable ->
             val query =editable?.toString()?.trim()?:""
             adapter.filter(query)
         }
@@ -90,8 +93,8 @@ class AttendanceListActivity : AppCompatActivity() {
                 val room = roomId ?: return@setPositiveButton
                 val session = sessionId ?: return@setPositiveButton
 
-                val dateFormatter = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault())
-                val currentDate = dateFormatter.format(java.util.Date())
+                val dateFormatter = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+                val currentDate = dateFormatter.format(Date())
 
                 viewModel.updateAttendanceStatus(room, session, currentDate, record)
 

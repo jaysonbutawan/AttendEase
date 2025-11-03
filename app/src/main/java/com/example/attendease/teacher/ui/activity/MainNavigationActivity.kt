@@ -1,20 +1,25 @@
-package com.example.attendease.teacher.ui.dashboard
+package com.example.attendease.teacher.ui.activity
 
 import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.cardview.widget.CardView
+import androidx.core.graphics.toColorInt
 import com.bumptech.glide.Glide
 import com.example.attendease.R
 import com.example.attendease.databinding.MainNavScreenBinding
-import com.example.attendease.teacher.ui.profile.ProfileActivity
-import com.example.attendease.teacher.ui.session.ui.ManageSessionActivity
+import com.example.attendease.teacher.ui.activity.EditProfileBottomSheet
+import com.example.attendease.teacher.ui.activity.ProfileActivity
+import com.example.attendease.teacher.ui.activity.HistorySubjectActivity
+import com.example.attendease.teacher.ui.activity.ManageSessionActivity
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.database.*
-import androidx.core.graphics.toColorInt
-import com.example.attendease.teacher.ui.profile.EditProfileBottomSheet
-import com.example.attendease.teacher.ui.session.ui.HistorySubjectActivity
+import com.google.firebase.database.DataSnapshot
+import com.google.firebase.database.DatabaseError
+import com.google.firebase.database.DatabaseReference
+import com.google.firebase.database.FirebaseDatabase
+import com.google.firebase.database.ValueEventListener
 
 class MainNavigationActivity : AppCompatActivity() {
 
@@ -82,12 +87,12 @@ class MainNavigationActivity : AppCompatActivity() {
 
             if (isNameIncomplete) {
                 // Show dialog asking to update name
-                androidx.appcompat.app.AlertDialog.Builder(this@MainNavigationActivity)
+                AlertDialog.Builder(this@MainNavigationActivity)
                     .setTitle("Update Required")
                     .setMessage("Please update your name with your institutional name before creating a class.")
                     .setPositiveButton("Update Now") { dialog, _ ->
                         // Open Edit Profile BottomSheet
-                        val editProfileSheet = EditProfileBottomSheet.newInstance(
+                        val editProfileSheet = EditProfileBottomSheet.Companion.newInstance(
                             currentName,
                             FirebaseAuth.getInstance().currentUser?.email,
                             FirebaseAuth.getInstance().currentUser?.photoUrl?.toString()
@@ -101,7 +106,12 @@ class MainNavigationActivity : AppCompatActivity() {
                     .setCancelable(false)
                     .show()
             } else {
-                startActivity(Intent(this@MainNavigationActivity, ManageSessionActivity::class.java))
+                startActivity(
+                    Intent(
+                        this@MainNavigationActivity,
+                        ManageSessionActivity::class.java
+                    )
+                )
             }
         }
 

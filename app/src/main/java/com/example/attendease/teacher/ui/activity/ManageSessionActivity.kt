@@ -1,4 +1,4 @@
-package com.example.attendease.teacher.ui.session.ui
+package com.example.attendease.teacher.ui.activity
 
 import android.annotation.SuppressLint
 import android.content.Intent
@@ -7,15 +7,14 @@ import android.view.MotionEvent
 import android.view.View
 import android.widget.Toast
 import androidx.activity.viewModels
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.widget.addTextChangedListener
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.attendease.databinding.ManageClassScreenBinding
 import com.example.attendease.teacher.data.model.ClassSession
-import com.example.attendease.teacher.ui.classschedule.ClassScheduleDialog
-import com.example.attendease.teacher.ui.dashboard.MainNavigationActivity
-import com.example.attendease.teacher.ui.session.adapter.SessionAdapter
-import com.example.attendease.teacher.ui.session.viewmodel.SessionListViewModel
+import com.example.attendease.teacher.ui.adapter.SessionAdapter
+import com.example.attendease.teacher.ui.viewmodel.SessionListViewModel
 import com.google.firebase.database.FirebaseDatabase
 
 class ManageSessionActivity : AppCompatActivity() {
@@ -165,7 +164,7 @@ class ManageSessionActivity : AppCompatActivity() {
             Toast.makeText(this, "Invalid session data.", Toast.LENGTH_SHORT).show()
             return
         }
-        androidx.appcompat.app.AlertDialog.Builder(this)
+        AlertDialog.Builder(this)
             .setTitle("Delete Session")
             .setMessage("Are you sure you want to delete this session? This action cannot be undone.")
             .setPositiveButton("Delete") { dialog, _ ->

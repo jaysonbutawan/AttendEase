@@ -13,7 +13,7 @@ import com.example.attendease.R
 import com.example.attendease.common.firebase.AuthRepository
 import com.example.attendease.common.splash.SplashActivity
 import com.example.attendease.databinding.LoginScreenBinding
-import com.example.attendease.teacher.ui.dashboard.MainNavigationActivity
+import com.example.attendease.teacher.ui.activity.MainNavigationActivity
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
 

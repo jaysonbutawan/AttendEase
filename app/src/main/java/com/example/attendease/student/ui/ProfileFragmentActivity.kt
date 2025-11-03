@@ -14,7 +14,7 @@ import com.example.attendease.R
 import com.example.attendease.common.firebase.AuthRepository
 import com.example.attendease.common.ui.auth.StudentLoginActivity
 import com.example.attendease.databinding.FragmentProfileScreenBinding
-import com.example.attendease.teacher.ui.profile.EditProfileBottomSheet
+import com.example.attendease.teacher.ui.activity.EditProfileBottomSheet
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.*
 

@@ -7,7 +7,7 @@
     android:layout_height="match_parent"
     android:background="#FFFFFF"
     android:padding="16dp"
-    tools:context=".teacher.ui.session.ui.ManageSessionActivity">
+    tools:context=".teacher.ui.activity.ManageSessionActivity">
     <androidx.cardview.widget.CardView
         android:id="@+id/classInfoCard"
         android:layout_width="match_parent"

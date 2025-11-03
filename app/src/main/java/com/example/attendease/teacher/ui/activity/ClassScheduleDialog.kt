@@ -1,5 +1,6 @@
-package com.example.attendease.teacher.ui.classschedule
+package com.example.attendease.teacher.ui.activity
 
+import android.R
 import android.annotation.SuppressLint
 import android.app.AlertDialog
 import android.app.TimePickerDialog
@@ -18,11 +19,13 @@ import com.example.attendease.databinding.ClassSchduleScreenBinding
 import com.example.attendease.teacher.data.model.ClassSession
 import com.example.attendease.teacher.data.model.Room
 import com.example.attendease.teacher.data.repositories.SessionRepository
-import com.example.attendease.teacher.ui.classschedule.viewModel.RoomListViewModel
+import com.example.attendease.teacher.ui.viewmodel.RoomListViewModel
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.FirebaseDatabase
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
 import java.util.Calendar
+import java.util.Locale
 
 class ClassScheduleDialog : DialogFragment() {
 
@@ -62,8 +65,8 @@ class ClassScheduleDialog : DialogFragment() {
 
         // Observe room list
         viewModel.rooms.observe(viewLifecycleOwner) { roomList ->
-            val adapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_item, roomList)
-            adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+            val adapter = ArrayAdapter(requireContext(), R.layout.simple_spinner_item, roomList)
+            adapter.setDropDownViewResource(R.layout.simple_spinner_dropdown_item)
             binding.spinnerRoom.adapter = adapter
 
             // Preselect the old room if editing an existing session
@@ -124,7 +127,7 @@ class ClassScheduleDialog : DialogFragment() {
         } else {
             // UPDATE EXISTING SESSION
             if (oldRoomId == newRoomId) {
-                updateExistingSession(oldRoomId, sessionId, subject, startTime, endTime)
+                updateSession(oldRoomId, sessionId, subject, startTime, endTime)
             } else {
                 confirmRoomChange(oldRoomId!!, newRoomId, sessionId, subject, startTime, endTime)
             }
@@ -234,7 +237,7 @@ class ClassScheduleDialog : DialogFragment() {
 
     private fun parseTimeToMinutes(time: String): Int {
         return try {
-            val format = java.text.SimpleDateFormat("hh:mm a", java.util.Locale.getDefault())
+            val format = SimpleDateFormat("hh:mm a", Locale.getDefault())
             val date = format.parse(time)
             val cal = Calendar.getInstance()
             cal.time = date!!  // Correct way to set the time
@@ -244,7 +247,7 @@ class ClassScheduleDialog : DialogFragment() {
         }
     }
 
-    private fun updateExistingSession(
+    private fun updateSession(
         roomId: String,
         sessionId: String,
         subject: String,

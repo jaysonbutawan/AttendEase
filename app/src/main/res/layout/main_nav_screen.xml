@@ -12,7 +12,7 @@
     android:orientation="vertical"
     android:background="@drawable/bg"
     android:padding="20dp"
-    tools:context=".teacher.ui.dashboard.MainNavigationActivity"
+    tools:context=".teacher.ui.activity.MainNavigationActivity"
     android:id="@+id/mainNavigation">
 
 

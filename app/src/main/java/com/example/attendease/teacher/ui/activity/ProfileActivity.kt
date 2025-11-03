@@ -1,8 +1,9 @@
-package com.example.attendease.teacher.ui.profile
+package com.example.attendease.teacher.ui.activity
 
 import android.content.Intent
 import android.os.Bundle
 import android.view.View
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import com.bumptech.glide.Glide
 import com.example.attendease.R
@@ -16,7 +17,7 @@ class ProfileActivity : AppCompatActivity() {
     private lateinit var binding: ProfileScreenBinding
     private val authRepository by lazy { AuthRepository(FirebaseAuth.getInstance()) }
 
-    // ✅ Declare these as nullable vars and initialize in onCreate()
+    // Declare these as nullable vars and initialize in onCreate()
     private var name: String? = null
     private var email: String? = null
     private var image: String? = null
@@ -26,7 +27,7 @@ class ProfileActivity : AppCompatActivity() {
         binding = ProfileScreenBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // ✅ Retrieve intent data safely here
+        // Retrieve intent data safely here
         name = intent.getStringExtra("name")
         email = intent.getStringExtra("email")
         image = intent.getStringExtra("image")
@@ -35,7 +36,7 @@ class ProfileActivity : AppCompatActivity() {
         setupListeners()
     }
 
-    // ✅ Sets up the profile display
+    // Sets up the profile display
     private fun setupProfileUI() = with(binding) {
         tvUserName.text = name ?: "No Name"
 
@@ -50,7 +51,7 @@ class ProfileActivity : AppCompatActivity() {
         }
     }
 
-    // ✅ Sets up button listeners
+    // Sets up button listeners
     private fun setupListeners() = with(binding) {
 
         // Edit Profile button click
@@ -69,7 +70,7 @@ class ProfileActivity : AppCompatActivity() {
     }
 
     private fun showLogoutConfirmationDialog() {
-        androidx.appcompat.app.AlertDialog.Builder(this)
+        AlertDialog.Builder(this)
             .setTitle("Confirm Logout")
             .setMessage("Are you sure you want to log out?")
             .setPositiveButton("Logout") { _, _ ->

@@ -6,7 +6,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:background="#FFFFFF"
     android:padding="16dp"
-    tools:context=".teacher.ui.session.ui.AttendanceReportActivity">
+    tools:context=".teacher.ui.activity.AttendanceReportActivity">
 
     <androidx.cardview.widget.CardView
         android:id="@+id/classInfoCard"

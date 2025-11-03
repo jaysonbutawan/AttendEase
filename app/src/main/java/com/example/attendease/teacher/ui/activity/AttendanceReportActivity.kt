@@ -1,4 +1,4 @@
-package com.example.attendease.teacher.ui.session.ui
+package com.example.attendease.teacher.ui.activity
 
 import android.content.Intent
 import android.os.Bundle
@@ -11,8 +11,8 @@ import androidx.core.widget.addTextChangedListener
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.attendease.databinding.AttendanceReportScreenBinding
 import com.example.attendease.teacher.data.model.ClassSession
-import com.example.attendease.teacher.ui.session.adapter.ClassHistoryAdapter
-import com.example.attendease.teacher.ui.session.viewmodel.ClassHistoryViewModel
+import com.example.attendease.teacher.ui.adapter.ClassHistoryAdapter
+import com.example.attendease.teacher.ui.viewmodel.ClassHistoryViewModel
 
 class AttendanceReportActivity : AppCompatActivity() {
 

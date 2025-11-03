@@ -109,6 +109,10 @@ class JoinClassBottomSheet : BottomSheetDialogFragment() {
 
                 val subject =
                     sessionSnap.child("subject").getValue(String::class.java) ?: "Unknown Subject"
+
+                val roomNames = sessionSnap.child("roomName").getValue(String::class.java)
+                    ?: sessionSnap.child("name").getValue(String::class.java)
+                    ?: "Unknown Room"
                 val teacherId = sessionSnap.child("teacherId").getValue(String::class.java) ?: ""
                 val sessionStatus =
                     sessionSnap.child("sessionStatus").getValue(String::class.java) ?: "N/A"
@@ -125,7 +129,7 @@ class JoinClassBottomSheet : BottomSheetDialogFragment() {
                     lateDuration = lateDuration,
                     timeScanned = scanTime,
                     subject = subject,
-                    room = roomName,
+                    room = roomName?: roomNames,
                     instructorName = instructorName,
                     sessionStatus = sessionStatus
                 )

@@ -1,4 +1,4 @@
-package com.example.attendease.teacher.ui.session.adapter
+package com.example.attendease.teacher.ui.adapter
 
 import android.annotation.SuppressLint
 import android.graphics.Color
@@ -48,7 +48,11 @@ class AttendanceAdapter(
             ivStatusIcon.setColorFilter(ContextCompat.getColor(root.context, iconColor))
 
             // --- Handle Partial Status ---
-            if (record.status.equals("partial", true)) {
+            if (
+                record.status.equals("partial", true) ||
+                record.status.equals("present", true) ||
+                record.status.equals("late", true)
+            ) {
 
                 // Always show confirm button for Partial (Low GPS or Left Geofence)
                 btnConfirmPresent.apply {
@@ -61,13 +65,13 @@ class AttendanceAdapter(
                 // Display detailed reason for being Partial
                 when {
                     record.confidence?.contains("Low GPS", ignoreCase = true) == true -> {
-                        // 🟠 Partial due to low GPS accuracy
+                        // Partial due to low GPS accuracy
                         tvStatusText.text = "Partial — Low GPS accuracy detected"
                         tvStatusText.setTextColor(Color.parseColor("#F4A261")) // orange
                     }
 
                     record.confidence?.contains("Left geofence", ignoreCase = true) == true -> {
-                        // 🔴 Partial because student left geofence area
+                        //Partial because student left geofence area
                         val outsideInfo = record.outsideTimeDisplay
                             ?: "${record.totalOutsideTime ?: 0} min outside"
                         tvStatusText.text = "Partial — Left geofence area ($outsideInfo)"
@@ -75,8 +79,9 @@ class AttendanceAdapter(
                     }
 
                     else -> {
-                        // ⚪ Unknown reason for partial
-                        tvStatusText.text = "Partial — Reason unknown"
+                        val outsideInfo = record.outsideTimeDisplay
+                            ?: "${record.totalOutsideTime ?: 0} min outside"
+                        tvStatusText.text = "Partial — Left geofence area ($outsideInfo)"
                         tvStatusText.setTextColor(Color.GRAY)
                     }
                 }
@@ -118,6 +123,7 @@ class AttendanceAdapter(
 
     override fun getItemCount(): Int = filteredList.size
 
+    // Replace all data (used when you receive a full updated list)
     @SuppressLint("NotifyDataSetChanged")
     fun updateData(newList: List<AttendanceRecord>) {
         attendanceList = newList
@@ -126,6 +132,7 @@ class AttendanceAdapter(
         onEmptyStateChange?.invoke(filteredList.isEmpty())
     }
 
+    // Search filter
     @SuppressLint("NotifyDataSetChanged")
     fun filter(query: String) {
         filteredList = if (query.isBlank()) {
@@ -140,4 +147,5 @@ class AttendanceAdapter(
         notifyDataSetChanged()
         onEmptyStateChange?.invoke(filteredList.isEmpty())
     }
+
 }

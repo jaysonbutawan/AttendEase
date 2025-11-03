@@ -1,4 +1,4 @@
-package com.example.attendease.teacher.ui.session.viewmodel
+package com.example.attendease.teacher.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import com.example.attendease.teacher.data.repositories.SessionRepository

@@ -27,10 +27,10 @@
             android:exported="false"
             tools:ignore="Instantiatable" />
         <activity
-            android:name=".teacher.ui.session.ui.AttendanceListActivity"
+            android:name=".teacher.ui.activity.AttendanceListActivity"
             android:exported="false" />
         <activity
-            android:name=".teacher.ui.session.ui.HistorySubjectActivity"
+            android:name=".teacher.ui.activity.HistorySubjectActivity"
             android:exported="false" />
         <activity
             android:name=".student.ui.StudentDashboardActivity"
@@ -39,24 +39,24 @@
             android:name=".common.ui.auth.StudentLoginActivity"
             android:exported="false" />
         <activity
-            android:name=".teacher.ui.session.ui.SessionActivity"
+            android:name=".teacher.ui.activity.SessionActivity"
             android:exported="false" />
         <activity
-            android:name=".teacher.ui.profile.ProfileActivity"
+            android:name=".teacher.ui.activity.ProfileActivity"
             android:exported="false" />
         <activity
-            android:name=".teacher.ui.classschedule.ClassScheduleDialog"
+            android:name=".teacher.ui.activity.ClassScheduleDialog"
             android:exported="false"
             android:theme="@style/Theme.AppCompat.Dialog"
             tools:ignore="Instantiatable" />
         <activity
-            android:name=".teacher.ui.session.ui.AttendanceReportActivity"
+            android:name=".teacher.ui.activity.AttendanceReportActivity"
             android:exported="false" />
         <activity
-            android:name=".teacher.ui.session.ui.ManageSessionActivity"
+            android:name=".teacher.ui.activity.ManageSessionActivity"
             android:exported="false" />
         <activity
-            android:name=".teacher.ui.dashboard.MainNavigationActivity"
+            android:name=".teacher.ui.activity.MainNavigationActivity"
             android:exported="false" />
         <activity
             android:name=".common.ui.auth.TeacherLoginActivity"
