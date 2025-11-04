@@ -70,7 +70,12 @@ class AttendanceListBottomSheet : BottomSheetDialogFragment() {
             ContextCompat.getColor(binding.tvStatusTitle.context, colorResId)
         )
 
-        val filtered = attendanceList.filter { it.status?.equals(statusType, true) == true }
+        val filtered = attendanceList.filter {
+            when (statusType?.lowercase()) {
+                "present" -> it.status.equals("present", true) || it.status.equals("late", true)
+                else -> it.status.equals(statusType, true)
+            }
+        }
 
         val adapter = AttendanceAdapter(filtered)
         binding.rvAttendanceList.layoutManager = LinearLayoutManager(requireContext())

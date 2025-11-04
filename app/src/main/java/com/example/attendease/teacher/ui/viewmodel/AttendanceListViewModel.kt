@@ -55,7 +55,7 @@ class AttendanceListViewModel : ViewModel() {
         repository.getAttendanceByDate(
             roomId = roomId,
             sessionId = sessionId,
-            date = date, // ✅ pass selected date
+            date = date,
             onResult = { records ->
                 _attendanceList.postValue(records)
             },
@@ -89,6 +89,7 @@ class AttendanceListViewModel : ViewModel() {
             if (snapshot.exists()) {
                 val currentData = snapshot.getValue(AttendanceRecord::class.java)
                 if (currentData != null) {
+
                     // Decide status based on lateDuration
                     val newStatus = if ((currentData.lateDuration ?: 0) > 0) {
                         "Late"
@@ -96,16 +97,26 @@ class AttendanceListViewModel : ViewModel() {
                         "Present"
                     }
 
-                    studentRef.child("status").setValue(newStatus)
+                    // 🔹 Update both status and confidence at the same time
+                    val updates = mapOf(
+                        "status" to newStatus,
+                        "confidence" to "Validated"
+                    )
+
+                    studentRef.updateChildren(updates)
                         .addOnSuccessListener {
                             val updatedList = attendanceList.value?.map {
-                                if (it.id == studentId) it.copy(status = newStatus) else it
+                                if (it.id == studentId)
+                                    it.copy(status = newStatus, confidence = "Validated")
+                                else it
                             } ?: emptyList()
+
                             _attendanceList.postValue(updatedList)
                         }
                         .addOnFailureListener {
-                            _error.postValue("Failed to update status for $studentId")
+                            _error.postValue("Failed to update attendance for $studentId")
                         }
+
                 } else {
                     _error.postValue("No attendance data found for this student.")
                 }
@@ -116,6 +127,7 @@ class AttendanceListViewModel : ViewModel() {
             _error.postValue("Error retrieving student data: ${it.message}")
         }
     }
+
 
 }
 

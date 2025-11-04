@@ -71,10 +71,11 @@ class AttendanceAdapter(
                     }
 
                     else -> {
-                        val outsideInfo = record.outsideTimeDisplay
-                            ?: "${record.totalOutsideTime ?: 0} min outside"
-                        tvStatusText.text = "Partial — Left geofence area ($outsideInfo)"
-                        tvStatusText.setTextColor(Color.GRAY)
+                        btnConfirmPresent.visibility = View.GONE
+//                        val outsideInfo = record.outsideTimeDisplay
+//                            ?: "${record.totalOutsideTime ?: 0} min outside"
+//                        tvStatusText.text = "Partial — Left geofence area ($outsideInfo)"
+//                        tvStatusText.setTextColor(Color.GRAY)
                     }
                 }
 

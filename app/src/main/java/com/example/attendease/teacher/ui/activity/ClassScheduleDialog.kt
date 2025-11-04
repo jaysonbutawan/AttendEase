@@ -124,6 +124,7 @@ class ClassScheduleDialog : DialogFragment() {
         }
     }
 
+    @SuppressLint("SuspiciousIndentation")
     private fun createNewSession(subject: String, startTime: String, endTime: String, roomId: String) {
         viewLifecycleOwner.lifecycleScope.launch {
             try {

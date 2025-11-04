@@ -467,79 +467,89 @@ class ScanFragmentActivity : Fragment() {
             }
 
             val studentId = currentUser.uid
-            val studentName = currentUser.displayName ?: "Unknown Student"
 
-            // Firebase reference
-            val attendanceRef = database.child(roomId)
-                .child("sessions")
-                .child(sessionId)
-                .child("attendance")
-                .child(currentDate)
-                .child(studentId)
+            // 🔹 Fetch the student full name from Firebase Database
+            val userRef = FirebaseDatabase.getInstance().getReference("users").child(studentId)
+            userRef.get().addOnSuccessListener { snapshot ->
+                val studentName = snapshot.child("fullname").getValue(String::class.java) ?: "Unknown Student"
 
-            // Data to store
-            val attendanceData = mapOf(
-                "name" to studentName,
-                "status" to finalStatus,
-                "timeScanned" to currentTime,
-                "lateDuration" to lateDuration,
-                "totalOutsideTime" to 0,
-                "confidence" to confidence,
-                "qrValid" to (confidence == "Confirmed by QR")
-            )
+                // Firebase reference
+                val attendanceRef = database.child(roomId)
+                    .child("sessions")
+                    .child(sessionId)
+                    .child("attendance")
+                    .child(currentDate)
+                    .child(studentId)
 
-            Log.d(
-                "USER_LOCATION_LOG",
-                """
-            roomId: $roomId
-            sessionId: $sessionId
-            studentId: $studentId
-            finalStatus: $finalStatus
-            confidence: $confidence
-            validationResult: $validationResult
-            time: $currentTime
-            """.trimIndent()
-            )
+                // Data to store
+                val attendanceData = mapOf(
+                    "name" to studentName,
+                    "status" to finalStatus,
+                    "timeScanned" to currentTime,
+                    "lateDuration" to lateDuration,
+                    "totalOutsideTime" to 0,
+                    "confidence" to confidence,
+                    "qrValid" to (confidence == "Confirmed by QR")
+                )
 
-            // Save to Firebase
-            attendanceRef.setValue(attendanceData)
-                .addOnSuccessListener {
-                    Toast.makeText(
-                        requireContext(),
-                        "Attendance marked: $finalStatus",
-                        Toast.LENGTH_LONG
-                    ).show()
-                    showLoading(false)
+                Log.d(
+                    "USER_LOCATION_LOG",
+                    """
+                roomId: $roomId
+                sessionId: $sessionId
+                studentId: $studentId
+                finalStatus: $finalStatus
+                confidence: $confidence
+                validationResult: $validationResult
+                time: $currentTime
+                studentName: $studentName
+                """.trimIndent()
+                )
 
-                    // Prevent re-scan for this session
-                    scanningEnabled = false
-                    saveScanStatus(roomId, sessionId, true)
+                // Save to Firebase
+                attendanceRef.setValue(attendanceData)
+                    .addOnSuccessListener {
+                        Toast.makeText(
+                            requireContext(),
+                            "Attendance marked: $finalStatus",
+                            Toast.LENGTH_LONG
+                        ).show()
+                        showLoading(false)
 
-                    stopCameraAndScanner()
-                    binding.previewView.visibility = View.GONE
+                        // Prevent re-scan for this session
+                        scanningEnabled = false
+                        saveScanStatus(roomId, sessionId, true)
 
-                    val dataToPass = Bundle().apply {
-                        putString("status", finalStatus)
-                        putString("timeScanned", currentTime)
-                        putString("roomId", roomId)
-                        putString("sessionId", sessionId)
-                        putString("dateScanned", currentDate)
+                        stopCameraAndScanner()
+                        binding.previewView.visibility = View.GONE
+
+                        val dataToPass = Bundle().apply {
+                            putString("status", finalStatus)
+                            putString("timeScanned", currentTime)
+                            putString("roomId", roomId)
+                            putString("sessionId", sessionId)
+                            putString("dateScanned", currentDate)
+                        }
+
+                        startTrackingOutsideTime(roomId, sessionId, studentId)
+                        navigateToJoinClass(dataToPass)
                     }
-
-                    startTrackingOutsideTime(roomId, sessionId, studentId)
-                    navigateToJoinClass(dataToPass)
-                }
-                .addOnFailureListener { e ->
-                    Log.e("ATTENDANCE_ERROR", "Failed to write attendance", e)
-                    Toast.makeText(
-                        requireContext(),
-                        "Failed to mark attendance",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                    showLoading(false)
-                    scanningEnabled = true
-                }
-
+                    .addOnFailureListener { e ->
+                        Log.e("ATTENDANCE_ERROR", "Failed to write attendance", e)
+                        Toast.makeText(
+                            requireContext(),
+                            "Failed to mark attendance",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                        showLoading(false)
+                        scanningEnabled = true
+                    }
+            }.addOnFailureListener { e ->
+                Log.e("USER_FETCH_ERROR", "Failed to get user name: ${e.message}")
+                Toast.makeText(requireContext(), "Could not retrieve user info.", Toast.LENGTH_SHORT).show()
+                showLoading(false)
+                scanningEnabled = true
+            }
 
         } catch (e: Exception) {
             Log.e("ATTENDANCE_EXCEPTION", "Error marking attendance", e)
@@ -548,6 +558,7 @@ class ScanFragmentActivity : Fragment() {
             scanningEnabled = true
         }
     }
+
     private fun saveScanStatus(roomId: String, sessionId: String, scanned: Boolean) {
         val prefs = requireContext().getSharedPreferences("ScanPrefs", Context.MODE_PRIVATE)
         prefs.edit().putBoolean("${roomId}_$sessionId", scanned).apply()
