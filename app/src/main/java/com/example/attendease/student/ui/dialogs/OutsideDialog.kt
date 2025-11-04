@@ -11,7 +11,7 @@ class OutsideDialog(private val context: Context) {
     private var messageText: TextView? = null
 
     fun show(distance: Float) {
-        if (dialog?.isShowing == true) return // Prevent multiple dialogs
+        if (dialog?.isShowing == true) return
 
         val builder = AlertDialog.Builder(context)
         val inflater = LayoutInflater.from(context)
@@ -21,13 +21,9 @@ class OutsideDialog(private val context: Context) {
         messageText?.text = "You are approximately ${distance.toInt()} meters away from the allowed area.\nPlease return immediately."
 
         builder.setView(view)
-        builder.setCancelable(false) // 🚫 Prevent closing by touch or back
+        builder.setCancelable(false)
         dialog = builder.create()
         dialog?.show()
-    }
-
-    fun updateDistance(distance: Float) {
-        messageText?.text = "You are approximately ${distance.toInt()} meters away from the allowed area.\nPlease return immediately."
     }
 
     fun dismiss() {

@@ -17,8 +17,6 @@ object SessionHelper {
 
     private val database = FirebaseDatabase.getInstance().reference
     private val currentUser = FirebaseAuth.getInstance().currentUser
-    private const val TAG = "SESSION_HELPER"
-
     suspend fun getMatchedSessions(): List<Session> = withContext(Dispatchers.IO) {
         val userId = currentUser?.uid ?: return@withContext emptyList()
         try {
@@ -60,11 +58,12 @@ object SessionHelper {
                     val sessionFullTime = "$startTime - $endTime"
 
                     val match = studentSchedule.any { entry ->
-                        entry["subject"].equals(sessionSubject, true) &&
-                                entry["instructor"].equals(instructorName, true) &&
-                                entry["room"].equals(roomName, true) &&
-                                entry["time"].equals(sessionFullTime, true)
+                        entry["subject"]?.normalizeForMatch() == sessionSubject?.normalizeForMatch() &&
+                                entry["instructor"]?.normalizeForMatch() == instructorName.normalizeForMatch() &&
+                                entry["room"]?.normalizeForMatch() == roomName.normalizeForMatch() &&
+                                entry["time"]?.normalizeForMatch() == sessionFullTime.normalizeForMatch()
                     }
+
 
                     if (match) {
                         val status = when (sessionStatus) {
@@ -96,6 +95,9 @@ object SessionHelper {
             return@withContext emptyList()
         }
     }
+    fun String.normalizeForMatch(): String =
+        this.trim().replace("\\s+".toRegex(), " ").lowercase()
+
 
     @RequiresApi(Build.VERSION_CODES.O)
     suspend fun getSessionsWithAttendance(): List<Session> = withContext(Dispatchers.IO) {
@@ -118,14 +120,12 @@ object SessionHelper {
                     val endTime = sessionSnap.child("endTime").getValue(String::class.java) ?: ""
                     val sessionStatus = sessionSnap.child("sessionStatus").getValue(String::class.java) ?: "upcoming"
 
-                    // Check if the user has attendance for this session
                     val attendanceNode = sessionSnap.child("attendance")
                     val hasAttendance = attendanceNode.children.any { dateSnap ->
                         dateSnap.child(userId).exists()
                     }
 
                     if (hasAttendance) {
-                        // Get teacher name
                         val instructorName = if (!teacherId.isNullOrEmpty()) {
                             database.child("users").child(teacherId).child("fullname").get().await().getValue(String::class.java) ?: "Unknown"
                         } else "Unknown"
@@ -171,24 +171,19 @@ object SessionHelper {
         val attendanceList = mutableListOf<AttendanceStatus>()
 
         try {
-
-            // Reference to the specific session
             val sessionRef = database
                 .child("rooms")
                 .child(roomId)
                 .child("sessions")
                 .child(sessionId)
-
-            // Fetch the session details (to get subject name, etc.)
             val sessionSnapshot = sessionRef.get().await()
             if (!sessionSnapshot.exists()) {
                 return@withContext emptyList()
             }
 
-            val subject = sessionSnapshot.child("subject").getValue(String::class.java) ?: "Unknown Subject"
+            sessionSnapshot.child("subject").getValue(String::class.java) ?: "Unknown Subject"
             val attendanceRef = sessionRef.child("attendance")
 
-            //  Fetch attendance data
             val attendanceSnapshot = attendanceRef.get().await()
             if (!attendanceSnapshot.exists()) {
                 return@withContext emptyList()
@@ -200,13 +195,11 @@ object SessionHelper {
 
                 if (studentSnap.exists()) {
                     val status = studentSnap.child("status").getValue(String::class.java) ?: "Unknown"
-
-                    // Convert "2025-10-30" → "October, 30, 2025"
                     val formattedDate = try {
                         val parsedDate = LocalDate.parse(dateStr, DateTimeFormatter.ISO_DATE)
                         parsedDate.format(DateTimeFormatter.ofPattern("MMMM, dd, yyyy", Locale.ENGLISH))
                     } catch (e: Exception) {
-                        dateStr // fallback if parsing fails
+                        dateStr
                     }
 
                     attendanceList.add(

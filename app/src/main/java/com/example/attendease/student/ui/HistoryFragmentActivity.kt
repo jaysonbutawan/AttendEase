@@ -38,16 +38,14 @@ class HistoryFragmentActivity : Fragment() {
         setupRecyclerView()
         observeViewModel()
 
-        // Load matched subjects from CSV
         viewModel.fetchMatchedSubjects()
         binding.editSearchSubject.addTextChangedListener { editable ->
             val query = editable?.toString()?.trim() ?: ""
             adapter.filter(query)
         }
 
-        // 🕳 Empty state toggle
         adapter.onEmptyStateChange = { isEmpty ->
-            binding.textEmptyState?.isVisible = isEmpty
+            binding.textEmptyState.isVisible = isEmpty
         }
     }
 
@@ -62,15 +60,15 @@ class HistoryFragmentActivity : Fragment() {
 
     private fun observeViewModel() {
         viewModel.isLoading.observe(viewLifecycleOwner) { loading ->
-            binding.progressBar?.isVisible = loading
+            binding.progressBar.isVisible = loading
         }
 
         viewModel.subjects.observe(viewLifecycleOwner) { subjectList ->
             if (subjectList.isEmpty()) {
-                binding.textEmptyState?.isVisible = true
+                binding.textEmptyState.isVisible = true
                 binding.recyclerViewSubjects.isVisible = false
             } else {
-                binding.textEmptyState?.isVisible = false
+                binding.textEmptyState.isVisible = false
                 binding.recyclerViewSubjects.isVisible = true
                 adapter = SubjectAdapter(subjectList) { onSubjectClicked(it) }
                 binding.recyclerViewSubjects.adapter = adapter

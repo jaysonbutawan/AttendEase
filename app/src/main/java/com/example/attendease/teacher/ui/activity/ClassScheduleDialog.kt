@@ -49,7 +49,6 @@ class ClassScheduleDialog : DialogFragment() {
         val oldRoomId = arguments?.getString("roomId")
         val sessionId = arguments?.getString("sessionId")
 
-        // Prefill fields for editing
         arguments?.let { args ->
             binding.editTextSubject.setText(args.getString("subject"))
             binding.startTimePicker.setText(args.getString("startTime"))
@@ -60,28 +59,21 @@ class ClassScheduleDialog : DialogFragment() {
             dismiss()
         }
 
-        // Initialize ViewModel
         viewModel = ViewModelProvider(requireActivity())[RoomListViewModel::class.java]
 
-        // Observe room list
         viewModel.rooms.observe(viewLifecycleOwner) { roomList ->
             val adapter = ArrayAdapter(requireContext(), R.layout.simple_spinner_item, roomList)
             adapter.setDropDownViewResource(R.layout.simple_spinner_dropdown_item)
             binding.spinnerRoom.adapter = adapter
 
-            // Preselect the old room if editing an existing session
             oldRoomId?.let { id ->
                 val index = roomList.indexOfFirst { it.roomId == id }
                 if (index != -1) binding.spinnerRoom.setSelection(index)
             }
         }
         viewModel.loadRooms()
-
-        // Time pickers
         setupTimePicker(binding.startTimePicker, "Start")
         setupTimePicker(binding.endTimePicker, "End")
-
-        // Handle create or update
         binding.btnSchedule.setOnClickListener {
             handleScheduleAction(sessionId, oldRoomId)
         }
@@ -117,15 +109,13 @@ class ClassScheduleDialog : DialogFragment() {
 
         val newRoomId = selectedRoom.roomId ?: ""
         if (subject.isEmpty()) {
-            Toast.makeText(requireContext(), "Please enter a subject.", Toast.LENGTH_SHORT).show()
+            showAlertDialog("Invalid Subject", "Please enter a subject.")
             return
         }
 
         if (sessionId.isNullOrEmpty()) {
-            // CREATE NEW SESSION
             createNewSession(subject, startTime, endTime, newRoomId)
         } else {
-            // UPDATE EXISTING SESSION
             if (oldRoomId == newRoomId) {
                 updateSession(oldRoomId, sessionId, subject, startTime, endTime)
             } else {
@@ -141,17 +131,17 @@ class ClassScheduleDialog : DialogFragment() {
             showAlertDialog("Invalid Time", "Please select both start and end times.")
             return@launch
         }
-
-        val newStart = parseTimeToMinutes(startTime)
-        val newEnd = parseTimeToMinutes(endTime)
-
-        // Validate logical time order
-        if (newStart == newEnd || newStart > newEnd) {
-            showAlertDialog("Invalid Schedule", "End time must be greater than start time.")
+        if(subject.isEmpty()){
+            showAlertDialog("Invalid Subject", "Please enter a subject.")
             return@launch
         }
 
-        // Prevent weird raw inputs like "0000" or "1234" (missing colon or AM/PM)
+        val newStart = parseTimeToMinutes(startTime)
+        val newEnd = parseTimeToMinutes(endTime)
+                if (newStart == newEnd || newStart > newEnd) {
+            showAlertDialog("Invalid Schedule", "End time must be greater than start time.")
+            return@launch
+        }
         val timeFormatRegex = Regex("""^(0[1-9]|1[0-2]):[0-5][0-9]\s?(AM|PM)$""")
         if (!timeFormatRegex.matches(startTime.uppercase()) || !timeFormatRegex.matches(endTime.uppercase())) {
             showAlertDialog("Invalid Time Format", "Please use valid time format (e.g. 12:00 AM, 01:30 PM).")
@@ -159,42 +149,24 @@ class ClassScheduleDialog : DialogFragment() {
         }
 
         val dbRef = FirebaseDatabase.getInstance().getReference("rooms")
-
         dbRef.get().addOnSuccessListener { roomsSnapshot ->
             var hasConflict = false
             var conflictDetails = ""
 
-            // Loop through all rooms and their sessions
             roomsSnapshot.children.forEach { roomSnap ->
-                val currentTeacherId = FirebaseAuth.getInstance().currentUser?.uid ?: ""
-
                 roomSnap.child("sessions").children.forEach { sessionSnap ->
                     val existingSubject = sessionSnap.child("subject").getValue(String::class.java) ?: ""
                     val existingStart = parseTimeToMinutes(sessionSnap.child("startTime").getValue(String::class.java) ?: "")
                     val existingEnd = parseTimeToMinutes(sessionSnap.child("endTime").getValue(String::class.java) ?: "")
-                    val existingRoomId = roomSnap.key ?: ""
-                    val existingTeacherId = sessionSnap.child("teacherId").getValue(String::class.java) ?: ""
-
+                    roomSnap.key ?: ""
                     val overlaps = (newStart < existingEnd && newEnd > existingStart)
 
-                    // Check if subject overlaps for same teacher
                     if (existingSubject.equals(subject, ignoreCase = true) && overlaps) {
                         hasConflict = true
                         conflictDetails = "The subject time overlaps with another schedule in the room selected."
                         return@forEach
                     }
 
-                    // Check if the same room is in use by any class at the same time
-                    if (existingRoomId == roomId && overlaps) {
-                        hasConflict = true
-                        conflictDetails = "Room selected already have session between ${sessionSnap.child("startTime").value} and ${sessionSnap.child("endTime").value}."
-                        return@forEach
-                    }
-                    if (existingTeacherId == currentTeacherId && overlaps) {
-                        hasConflict = true
-                        conflictDetails = "You already have another session to this time you selected."
-                        return@forEach
-                    }
                 }
 
                 if (hasConflict) return@forEach
@@ -260,60 +232,40 @@ class ClassScheduleDialog : DialogFragment() {
                     showAlertDialog("Invalid Time", "Please select both start and end times.")
                     return@launch
                 }
+                if(subject.isEmpty()){
+                    showAlertDialog("Invalid Subject", "Please enter a subject.")
+                    return@launch
+                }
 
                 val newStart = parseTimeToMinutes(startTime)
                 val newEnd = parseTimeToMinutes(endTime)
-
-                // Validate logical order
                 if (newStart == newEnd || newStart > newEnd) {
                     showAlertDialog("Invalid Schedule", "End time must be greater than start time.")
                     return@launch
                 }
-
-                // Validate time format (e.g. 12:00 PM)
                 val timeFormatRegex = Regex("""^(0[1-9]|1[0-2]):[0-5][0-9]\s?(AM|PM)$""")
                 if (!timeFormatRegex.matches(startTime.uppercase()) || !timeFormatRegex.matches(endTime.uppercase())) {
                     showAlertDialog("Invalid Time Format", "Please use valid time format (e.g. 12:00 AM, 01:30 PM).")
                     return@launch
                 }
-
                 val dbRef = FirebaseDatabase.getInstance().getReference("rooms")
-
                 dbRef.get().addOnSuccessListener { roomsSnapshot ->
                     var hasConflict = false
                     var conflictDetails = ""
-
-                    val currentTeacherId = FirebaseAuth.getInstance().currentUser?.uid ?: ""
-
-                    // Loop through all rooms and sessions to check for conflicts
+                    FirebaseAuth.getInstance().currentUser?.uid ?: ""
                     roomsSnapshot.children.forEach { roomSnap ->
                         roomSnap.child("sessions").children.forEach { sessionSnap ->
                             val existingId = sessionSnap.key ?: ""
-                            if (existingId == sessionId) return@forEach // Skip the current session
+                            if (existingId == sessionId) return@forEach
 
                             val existingSubject = sessionSnap.child("subject").getValue(String::class.java) ?: ""
                             val existingStart = parseTimeToMinutes(sessionSnap.child("startTime").getValue(String::class.java) ?: "")
                             val existingEnd = parseTimeToMinutes(sessionSnap.child("endTime").getValue(String::class.java) ?: "")
-                            val existingRoomId = roomSnap.key ?: ""
-                            val existingTeacherId = sessionSnap.child("teacherId").getValue(String::class.java) ?: ""
+                             roomSnap.key ?: ""
+                           sessionSnap.child("teacherId").getValue(String::class.java) ?: ""
 
                             val overlaps = (newStart < existingEnd && newEnd > existingStart)
 
-                            // Same room conflict
-                            if (existingRoomId == roomId && overlaps) {
-                                hasConflict = true
-                                conflictDetails = "Room selected already has a session between ${sessionSnap.child("startTime").value} and ${sessionSnap.child("endTime").value}."
-                                return@forEach
-                            }
-
-                            // Teacher double-booking
-                            if (existingTeacherId == currentTeacherId && overlaps) {
-                                hasConflict = true
-                                conflictDetails = "You already have another session during the selected time."
-                                return@forEach
-                            }
-
-                            // Same subject overlap
                             if (existingSubject.equals(subject, ignoreCase = true) && overlaps) {
                                 hasConflict = true
                                 conflictDetails = "This subject overlaps with another schedule."
@@ -328,7 +280,6 @@ class ClassScheduleDialog : DialogFragment() {
                         return@addOnSuccessListener
                     }
 
-                    // No conflict — proceed with update
                     val updates = mapOf(
                         "subject" to subject,
                         "startTime" to startTime,

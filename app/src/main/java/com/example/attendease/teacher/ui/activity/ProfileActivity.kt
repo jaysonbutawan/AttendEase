@@ -27,7 +27,6 @@ class ProfileActivity : AppCompatActivity() {
         binding = ProfileScreenBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // Retrieve intent data safely here
         name = intent.getStringExtra("name")
         email = intent.getStringExtra("email")
         image = intent.getStringExtra("image")
@@ -36,7 +35,6 @@ class ProfileActivity : AppCompatActivity() {
         setupListeners()
     }
 
-    // Sets up the profile display
     private fun setupProfileUI() = with(binding) {
         tvUserName.text = name ?: "No Name"
 
@@ -51,10 +49,8 @@ class ProfileActivity : AppCompatActivity() {
         }
     }
 
-    // Sets up button listeners
     private fun setupListeners() = with(binding) {
 
-        // Edit Profile button click
         generalSection.findViewById<View>(R.id.edit_profile).setOnClickListener {
             showEditProfileSheet()
         }

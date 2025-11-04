@@ -25,7 +25,6 @@ class SplashActivity : AppCompatActivity() {
     private enum class Role {
         STUDENT, TEACHER
     }
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = SplashScreenBinding.inflate(layoutInflater)
@@ -34,22 +33,15 @@ class SplashActivity : AppCompatActivity() {
         val user = FirebaseAuth.getInstance().currentUser
 
         if (user != null) {
-            // User already logged in → Check Role for secure routing
             checkUserRoleAndNavigate(user.uid)
         } else {
-            // --- User not logged in → show role selection options ---
             setupRoleSelection()
         }
     }
 
-    /**
-     * Fetches the user's role from Firebase and routes them to the correct dashboard.
-     */
     private fun checkUserRoleAndNavigate(userId: String) {
-        // Use a coroutine for the asynchronous Firebase read
         lifecycleScope.launch {
             try {
-                // Read the 'role' field under the user's ID
                 val snapshot = database.child("users").child(userId).child("role").get().await()
                 val role = snapshot.getValue(String::class.java)
 
@@ -58,12 +50,10 @@ class SplashActivity : AppCompatActivity() {
                 } else if (role.equals("student", ignoreCase = true)) {
                     startActivity(Intent(this@SplashActivity, StudentDashboardActivity::class.java))
                 } else {
-                    // Fallback if role is missing or invalid
                     FirebaseAuth.getInstance().signOut()
                     setupRoleSelection()
                 }
             } catch (e: Exception) {
-                // Handle network error, database error, etc.
                 FirebaseAuth.getInstance().signOut()
                 setupRoleSelection()
             }
@@ -71,9 +61,6 @@ class SplashActivity : AppCompatActivity() {
         }
     }
 
-    /**
-     * Sets up the role selection UI and listeners.
-     */
     private fun setupRoleSelection() {
         binding.onboardingOptionLayout.visibility = View.VISIBLE
         updateRoleSelection(null)
@@ -91,9 +78,6 @@ class SplashActivity : AppCompatActivity() {
         }
     }
 
-    /**
-     * Updates the UI state of the cards (border color and 'Select' text visibility).
-     */
     private fun updateRoleSelection(role: Role?) {
         val isStudentSelected = role == Role.STUDENT
         val isTeacherSelected = role == Role.TEACHER

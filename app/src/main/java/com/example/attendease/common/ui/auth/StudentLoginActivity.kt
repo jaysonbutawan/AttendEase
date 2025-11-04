@@ -90,8 +90,12 @@ class StudentLoginActivity : AppCompatActivity() {
     }
 
     private fun signIn(email: String, password: String) {
+        binding.progressBar.visibility = View.GONE
+        binding.loginButton.isEnabled = true
         lifecycleScope.launch {
             val result = repository.signInWithEmail(email, password, "student")
+            binding.progressBar.visibility = View.GONE
+            binding.loginButton.isEnabled = true
             result.onSuccess {
                 Toast.makeText(this@StudentLoginActivity, "Login Successful", Toast.LENGTH_SHORT).show()
                 startActivity(Intent(this@StudentLoginActivity, StudentDashboardActivity::class.java))
@@ -114,8 +118,12 @@ class StudentLoginActivity : AppCompatActivity() {
             showInvalidEmailDialog()
             return
         }
+        binding.progressBar.visibility = View.GONE
+        binding.loginButton.isEnabled = true
         lifecycleScope.launch {
             val result = repository.signUpWithEmail(email, password, "student")
+            binding.progressBar.visibility = View.GONE
+            binding.loginButton.isEnabled = true
             result.onSuccess {
                 AlertDialog.Builder(this@StudentLoginActivity)
                     .setTitle("Success")
@@ -127,7 +135,7 @@ class StudentLoginActivity : AppCompatActivity() {
                     .show()
                 binding.toggleGroup.check(R.id.radio_sign_in)
                 updateUIForState(AuthState.SIGN_IN)
-                binding.passwordEditText.text.clear()
+                binding.passwordEditText.text?.clear()
             }.onFailure { e ->
                 Toast.makeText(
                     this@StudentLoginActivity,
@@ -150,8 +158,12 @@ class StudentLoginActivity : AppCompatActivity() {
 
 
     private fun handleGoogleSignIn() {
+        binding.progressBar.visibility = View.GONE
+        binding.loginButton.isEnabled = true
         lifecycleScope.launch {
             val result = repository.signInWithGoogle(this@StudentLoginActivity, "student")
+            binding.progressBar.visibility = View.GONE
+            binding.loginButton.isEnabled = true
             result.onSuccess {
                 Toast.makeText(this@StudentLoginActivity, "Login Successful", Toast.LENGTH_SHORT).show()
                 startActivity(Intent(this@StudentLoginActivity, StudentDashboardActivity::class.java))

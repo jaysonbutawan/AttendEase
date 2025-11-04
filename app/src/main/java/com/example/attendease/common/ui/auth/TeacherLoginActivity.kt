@@ -100,8 +100,12 @@ class TeacherLoginActivity : AppCompatActivity() {
     }
 
     private fun signIn(email: String, password: String) {
+        binding.progressBar.visibility = View.VISIBLE
+        binding.loginButton.isEnabled = false
         lifecycleScope.launch {
             val result = repository.signInWithEmail(email, password, "teacher")
+            binding.progressBar.visibility = View.GONE
+            binding.loginButton.isEnabled = true
             result.onSuccess {
                 Toast.makeText(this@TeacherLoginActivity, "Login Successful", Toast.LENGTH_SHORT).show()
                 startActivity(Intent(this@TeacherLoginActivity, MainNavigationActivity::class.java))
@@ -124,8 +128,12 @@ class TeacherLoginActivity : AppCompatActivity() {
             showInvalidEmailDialog()
             return
         }
+        binding.progressBar.visibility = View.GONE
+        binding.loginButton.isEnabled = true
         lifecycleScope.launch {
             val result = repository.signUpWithEmail(email, password, "teacher")
+            binding.progressBar.visibility = View.GONE
+            binding.loginButton.isEnabled = true
             result.onSuccess {
                 AlertDialog.Builder(this@TeacherLoginActivity)
                     .setTitle("Success")
@@ -137,7 +145,7 @@ class TeacherLoginActivity : AppCompatActivity() {
                     .show()
                 binding.toggleGroup.check(R.id.radio_sign_in)
                 updateUIForState(AuthState.SIGN_IN)
-                binding.passwordEditText.text.clear()
+                binding.passwordEditText.text?.clear()
             }.onFailure { e ->
                 AlertDialog.Builder(this@TeacherLoginActivity)
                     .setTitle("Login Failed")
@@ -162,8 +170,12 @@ class TeacherLoginActivity : AppCompatActivity() {
     }
 
     private fun handleGoogleSignIn() {
+        binding.progressBar.visibility = View.GONE
+        binding.loginButton.isEnabled = true
         lifecycleScope.launch {
             val result = repository.signInWithGoogle(this@TeacherLoginActivity, "teacher")
+            binding.progressBar.visibility = View.GONE
+            binding.loginButton.isEnabled = true
             result.onSuccess {
                 Toast.makeText(this@TeacherLoginActivity, "Login Successful", Toast.LENGTH_SHORT).show()
                 startActivity(Intent(this@TeacherLoginActivity, MainNavigationActivity::class.java))

@@ -61,11 +61,6 @@ class ProfileFragmentActivity : Fragment() {
         editProfileSheet.show(parentFragmentManager, "EditProfileBottomSheetActivity")
     }
 
-
-
-    /**
-     * 🔹 Listen for user data and update UI
-     */
     private fun setupUserListener() {
         userListener = object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
@@ -88,9 +83,6 @@ class ProfileFragmentActivity : Fragment() {
         databaseRef.addValueEventListener(userListener!!)
     }
 
-    /**
-     * 🔹 Update displayed student info
-     */
     private fun setupUserInfo(name: String, course: String, imageUrl: String?) = with(binding) {
         tvStudentName.text = name
         tvStudentProgram.text = course
@@ -105,10 +97,6 @@ class ProfileFragmentActivity : Fragment() {
             ivStudentAvatar.setImageResource(R.drawable.ic_profile)
         }
     }
-
-    /**
-     * 🔹 Logout button click
-     */
     private fun setupLogoutButton() {
         binding.btnStudentLogout.setOnClickListener {
             AlertDialog.Builder(requireContext())

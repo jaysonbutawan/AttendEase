@@ -221,7 +221,6 @@ class ScheduleFragmentActivity : Fragment() {
                             if (snapshot.exists()) "Loaded from Firebase" else "No schedule found"
                         showLoadingState(false)
                         if (snapshot.exists()) {
-                            // 🔁 Cache it locally for next launch
                             val scheduleList = snapshot.children.mapNotNull { it.value as? Map<String, String> }
                             cacheCsvData("Firebase Backup", scheduleList)
                             loadMatchedSessions()
@@ -239,8 +238,6 @@ class ScheduleFragmentActivity : Fragment() {
     private fun removeCsvData() {
         val userId = currentUser?.uid ?: return
         val userRef = database.child("users").child(userId)
-
-        // ✅ Show confirmation dialog before removing CSV
         androidx.appcompat.app.AlertDialog.Builder(requireContext())
             .setTitle("Remove CSV File")
             .setMessage("Are you sure you want to remove the CSV file?")
@@ -249,38 +246,31 @@ class ScheduleFragmentActivity : Fragment() {
 
                 lifecycleScope.launch(Dispatchers.IO) {
                     try {
-                        // Remove schedule data from Firebase
                         userRef.child("schedule").removeValue().await()
                         userRef.child("csvFileName").removeValue().await()
 
                         withContext(Dispatchers.Main) {
-                            // ✅ Clear the correct user-specific cache
                             requireContext().getSharedPreferences("csv_cache_$userId", Activity.MODE_PRIVATE)
                                 .edit { clear() }
-
-                            // ✅ Clear any saved CSV filename from global prefs
                             requireContext().getSharedPreferences("csv_prefs", Activity.MODE_PRIVATE)
                                 .edit { remove("csvFileName") }
 
-                            // ✅ Reset state and update UI
                             isCsvLoaded = false
                             uploadedCsvUri = null
                             updateUploadUiState(false)
                             clearRecyclerView()
                             binding.fileNameText.text = "CSV removed"
-                            Log.d(TAG, "✅ CSV data and cache removed successfully")
+                            Log.d(TAG, "CSV data and cache removed successfully")
 
-                            // Reload fragment data to ensure UI sync
                             loadMatchedSessions()
                         }
                     } catch (e: Exception) {
-                        Log.e(TAG, "❌ Error deleting CSV data: ${e.message}", e)
+                        Log.e(TAG, "Error deleting CSV data: ${e.message}", e)
                     }
                 }
             }
             .setNegativeButton("Cancel") { dialog, _ ->
                 dialog.dismiss()
-                Log.d(TAG, "❎ CSV removal canceled by user")
             }
             .show()
     }
@@ -383,7 +373,6 @@ class ScheduleFragmentActivity : Fragment() {
             adapter?.notifyDataSetChanged()
             visibility = View.GONE
         }
-        Log.d(TAG, "🧹 Cleared RecyclerView")
     }
 
     private fun setupRecyclerView(sessions: List<Session>) {
@@ -393,7 +382,6 @@ class ScheduleFragmentActivity : Fragment() {
             setHasFixedSize(true)
             adapter = SessionAdapter(sessions)
         }
-        Log.d(TAG, "📋 RecyclerView loaded with ${sessions.size} sessions")
     }
 
     private fun showStudentSchedule(show: Boolean) {

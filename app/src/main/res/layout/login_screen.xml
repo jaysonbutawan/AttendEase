@@ -180,54 +180,53 @@
                 android:textSize="20sp"
                 android:textStyle="bold" />
 
-            <!-- Email -->
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="8dp"
-                android:text="Institution Email"
-                android:textColor="@android:color/black"
-                android:textSize="12sp"
-                android:textStyle="bold" />
 
-            <EditText
-                android:id="@+id/emailEditText"
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/emailInputLayout"
+                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="20dp"
-                android:background="@drawable/edit_text_background"
-                android:drawableStart="@drawable/email"
-                android:drawablePadding="8dp"
                 android:hint="teacher@institution.edu"
-                android:autofillHints="emailAddress"
-                android:inputType="textEmailAddress"
-                android:padding="12dp"
-                android:textColor="@android:color/black"
-                android:textSize="16sp" />
+                android:padding="4dp">
 
-            <!-- Password -->
-            <TextView
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/emailEditText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="textEmailAddress"
+                    android:autofillHints="emailAddress"
+                    android:textColor="@android:color/black"
+                    android:textSize="16sp"
+                    android:drawableStart="@drawable/email"
+                    android:drawablePadding="8dp"
+                    android:padding="12dp" />
+
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/passwordInputLayout"
+                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="8dp"
-                android:text="Password"
-                android:textColor="@android:color/black"
-                android:textSize="12sp"
-                android:textStyle="bold" />
-
-            <EditText
-                android:id="@+id/passwordEditText"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:background="@drawable/edit_text_background"
-                android:drawableStart="@drawable/password"
-                android:drawablePadding="8dp"
                 android:hint="Enter your password"
-                android:autofillHints="password"
-                android:inputType="textPassword"
-                android:padding="12dp"
-                android:textColor="@android:color/black"
-                android:textSize="16sp" />
+                app:endIconMode="password_toggle"
+                app:endIconDrawable="@drawable/ic_eye_close"
+                android:padding="4dp">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/passwordEditText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="textPassword"
+                    android:autofillHints="password"
+                    android:textColor="@android:color/black"
+                    android:textSize="16sp"
+                    android:drawableStart="@drawable/password"
+                    android:drawablePadding="8dp"
+                    android:padding="12dp" />
+
+            </com.google.android.material.textfield.TextInputLayout>
+
 
             <!-- Forgot Password -->
             <TextView
@@ -295,6 +294,17 @@
 
         </LinearLayout>
     </androidx.cardview.widget.CardView>
+
+        <ProgressBar
+            android:id="@+id/progressBar"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:visibility="gone"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"/>
 
 
 

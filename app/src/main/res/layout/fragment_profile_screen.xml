@@ -17,19 +17,6 @@
             android:layout_height="wrap_content"
             android:paddingBottom="40dp">
 
-            <TextView
-                android:id="@+id/tvMyProfileTitle"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="40dp"
-                android:text="My Profile"
-                android:textColor="@color/blue"
-                android:textSize="20sp"
-                android:textStyle="bold"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent" />
-
             <androidx.constraintlayout.widget.ConstraintLayout
                 android:id="@+id/clAvatarContainer"
                 android:layout_width="120dp"
@@ -37,7 +24,7 @@
                 android:layout_marginTop="32dp"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/tvMyProfileTitle">
+                app:layout_constraintTop_toTopOf="parent">
 
                 <de.hdodenhof.circleimageview.CircleImageView
                     android:id="@+id/ivStudentAvatar"
@@ -70,7 +57,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
-                android:text="Alexandra Chen"
+                android:text="ricky"
                 android:textColor="@android:color/black"
                 android:textSize="22sp"
                 android:textStyle="bold"
@@ -83,7 +70,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="4dp"
-                android:text="B.Sc. in Computer Science"
+                android:text="Go ayti"
                 android:textColor="@android:color/black"
                 android:textSize="16sp"
                 app:layout_constraintEnd_toEndOf="parent"
@@ -170,7 +157,7 @@
                 android:layout_width="0dp"
                 android:layout_height="55dp"
                 android:layout_marginHorizontal="32dp"
-                android:layout_marginTop="140dp"
+                android:layout_marginTop="100dp"
                 android:paddingVertical="12dp"
                 android:text="Logout"
                 android:textColor="#FFFF"
@@ -182,8 +169,7 @@
                 app:cornerRadius="15dp"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/cardStudentId"
-                app:layout_constraintBottom_toBottomOf="parent"/>
+                app:layout_constraintTop_toBottomOf="@id/cardStudentId" />
 
         </androidx.constraintlayout.widget.ConstraintLayout>
     </ScrollView>

@@ -78,7 +78,6 @@ class SessionActivity : AppCompatActivity() {
         observeAttendanceList()
     }
 
-    // ---------------------------
     // UI Setup and Initialization
     // ---------------------------
 
@@ -106,9 +105,8 @@ class SessionActivity : AppCompatActivity() {
         }
     }
 
-    // ---------------------------
     // QR Code Handling
-    // ---------------------------
+    // ---------------------------=============================
 
     private fun startQrCodeGeneration() {
         qrRunnable = object : Runnable {
@@ -130,7 +128,6 @@ class SessionActivity : AppCompatActivity() {
         qrHandler?.post(qrRunnable)
     }
 
-    // ---------------------------
     // Attendance Observation
     // ---------------------------
 
@@ -162,14 +159,12 @@ class SessionActivity : AppCompatActivity() {
 
         }
 
-        // Observe errors separately
         attendanceListViewModel.error.observe(this) { error ->
             Toast.makeText(this, "Error: $error", Toast.LENGTH_SHORT).show()
         }
     }
 
 
-    // ---------------------------
     // End Session Handling
     // ---------------------------
 
@@ -179,7 +174,7 @@ class SessionActivity : AppCompatActivity() {
             .setMessage("Are you sure you want to end this session?")
             .setPositiveButton("Yes") { dialog, _ ->
                 dialog.dismiss()
-                endSessionConfirmed() // call the actual end session logic here
+                endSessionConfirmed()
             }
             .setNegativeButton("Cancel") { dialog, _ ->
                 dialog.dismiss()
@@ -202,7 +197,6 @@ class SessionActivity : AppCompatActivity() {
             .child("sessions")
             .child(session)
 
-        // ✅ Format current date
         val dateFormatter = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
         val currentDate = dateFormatter.format(Date())
 
@@ -235,8 +229,7 @@ class SessionActivity : AppCompatActivity() {
                 return@addOnSuccessListener
             }
 
-            // ✅ Collect ALL unique student IDs from all previous dates
-            val allPreviousStudents = mutableMapOf<String, String>() // studentId -> studentName
+            val allPreviousStudents = mutableMapOf<String, String>()
 
             for (dateNode in previousSnapshot.children) {
                 for (student in dateNode.children) {
@@ -246,19 +239,17 @@ class SessionActivity : AppCompatActivity() {
                 }
             }
 
-            // ✅ Now get current attendance
             currentAttendanceRef.get().addOnSuccessListener { currentSnapshot ->
                 val absentTasks = mutableListOf<Task<Void>>()
 
                 for ((studentId, studentName) in allPreviousStudents) {
-                    // If student not found today, mark absent
                     if (!currentSnapshot.hasChild(studentId)) {
                         val absentData = mapOf(
                             "name" to studentName,
                             "status" to "absent",
                             "confidence" to "No scan record",
                             "qrValid" to false,
-                            "timeScanned" to "N/A",
+                            "timeScanned" to "No scan record",
                             "lateDuration" to 0,
                             "totalOutsideTime" to 0
                         )
@@ -291,11 +282,8 @@ class SessionActivity : AppCompatActivity() {
                 val room = roomId ?: return@setPositiveButton
                 val session = sessionId ?: return@setPositiveButton
 
-                // ✅ Get today's date (to match how it’s stored in Firebase)
                 val dateFormatter = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
                 val currentDate = dateFormatter.format(Date())
-
-                // ✅ Updated call to include date parameter
                 attendanceListViewModel.updateAttendanceStatus(room, session, currentDate, record)
 
                 dialog.dismiss()
@@ -304,10 +292,6 @@ class SessionActivity : AppCompatActivity() {
             .show()
     }
 
-
-    // ---------------------------
-    // Lifecycle
-    // ---------------------------
 
     override fun onDestroy() {
         super.onDestroy()

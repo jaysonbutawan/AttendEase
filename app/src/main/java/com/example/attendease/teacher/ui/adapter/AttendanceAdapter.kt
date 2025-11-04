@@ -24,11 +24,9 @@ class AttendanceAdapter(
         @SuppressLint("SetTextI18n")
         fun bind(record: AttendanceRecord) = with(binding) {
 
-            // --- Student Info Display ---
             tvStudentName.text = record.name ?: "Unknown Student"
             tvStatusText.text = record.timeScanned?.let { "Scanned at $it" } ?: "No scan record"
 
-            // --- Status Badge ---
             tvStatusBadge.text = record.status?.capitalize() ?: "Unknown"
             val badgeColor = when (record.status?.lowercase()) {
                 "present" -> R.color.success_color
@@ -38,7 +36,6 @@ class AttendanceAdapter(
             }
             tvStatusBadge.setBackgroundColor(ContextCompat.getColor(root.context, badgeColor))
 
-            // --- Status Icon ---
             val iconColor = when (record.status?.lowercase()) {
                 "present" -> R.color.success_color
                 "partial" -> R.color.dark_background
@@ -47,14 +44,12 @@ class AttendanceAdapter(
             }
             ivStatusIcon.setColorFilter(ContextCompat.getColor(root.context, iconColor))
 
-            // --- Handle Partial Status ---
             if (
                 record.status.equals("partial", true) ||
                 record.status.equals("present", true) ||
                 record.status.equals("late", true)
             ) {
 
-                // Always show confirm button for Partial (Low GPS or Left Geofence)
                 btnConfirmPresent.apply {
                     visibility = View.VISIBLE
                     text = "Confirm Present"
@@ -62,20 +57,17 @@ class AttendanceAdapter(
                     setOnClickListener { onMarkPresentClick?.invoke(record) }
                 }
 
-                // Display detailed reason for being Partial
                 when {
                     record.confidence?.contains("Low GPS", ignoreCase = true) == true -> {
-                        // Partial due to low GPS accuracy
                         tvStatusText.text = "Partial — Low GPS accuracy detected"
-                        tvStatusText.setTextColor(Color.parseColor("#F4A261")) // orange
+                        tvStatusText.setTextColor(Color.parseColor("#F4A261"))
                     }
 
                     record.confidence?.contains("Left geofence", ignoreCase = true) == true -> {
-                        //Partial because student left geofence area
                         val outsideInfo = record.outsideTimeDisplay
                             ?: "${record.totalOutsideTime ?: 0} min outside"
                         tvStatusText.text = "Partial — Left geofence area ($outsideInfo)"
-                        tvStatusText.setTextColor(Color.parseColor("#E76F51")) // red-orange
+                        tvStatusText.setTextColor(Color.parseColor("#E76F51"))
                     }
 
                     else -> {
@@ -87,11 +79,8 @@ class AttendanceAdapter(
                 }
 
             } else {
-                // Hide confirm button for non-partial statuses
                 btnConfirmPresent.visibility = View.GONE
             }
-
-            // --- Optional confidence styling for other cases (non-partial) ---
             record.confidence?.let {
                 tvStatusText.setTextColor(
                     when {
@@ -122,8 +111,6 @@ class AttendanceAdapter(
     }
 
     override fun getItemCount(): Int = filteredList.size
-
-    // Replace all data (used when you receive a full updated list)
     @SuppressLint("NotifyDataSetChanged")
     fun updateData(newList: List<AttendanceRecord>) {
         attendanceList = newList
@@ -132,7 +119,6 @@ class AttendanceAdapter(
         onEmptyStateChange?.invoke(filteredList.isEmpty())
     }
 
-    // Search filter
     @SuppressLint("NotifyDataSetChanged")
     fun filter(query: String) {
         filteredList = if (query.isBlank()) {

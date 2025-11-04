@@ -7,10 +7,7 @@ import com.google.android.gms.maps.model.LatLng
 object LocationValidator {
 
     fun isInsidePolygon(studentLocation: LatLng, polygonPoints: List<LatLng>, toleranceMeters: Float = 5f): Boolean {
-        // If directly inside polygon
         if (isPointInsidePolygon(studentLocation, polygonPoints)) return true
-
-        // Otherwise check if within small radius around polygon edges
         for (i in polygonPoints.indices) {
             val j = (i + 1) % polygonPoints.size
             val midPoint = LatLng(
@@ -33,7 +30,6 @@ object LocationValidator {
         return (intersectCount % 2 == 1)
     }
 
-    // Ray-casting algorithm helper
     private fun rayCrossesSegment(point: LatLng, a: LatLng, b: LatLng): Boolean {
         val px = point.longitude
         val py = point.latitude
@@ -58,7 +54,6 @@ object LocationValidator {
         return blue >= red
     }
 
-    // Optional: Check if within circular radius
     fun isWithinRadius(
         studentLocation: LatLng,
         center: LatLng,

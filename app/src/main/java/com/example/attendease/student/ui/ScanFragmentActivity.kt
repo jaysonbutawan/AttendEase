@@ -66,22 +66,15 @@ class ScanFragmentActivity : Fragment() {
                 Toast.makeText(requireContext(), "Location permission denied", Toast.LENGTH_SHORT).show()
             }
         }
-
-
     private var cameraProvider: ProcessCameraProvider? = null
     private var camera: Camera? = null
     private var imageAnalysis: ImageAnalysis? = null
-
-    // NEW: dedicated executor for image analysis (shutdown on stop)
     private var cameraExecutor: ExecutorService? = null
-
-
     private val cameraPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
             if (granted) startCamera()
             else Toast.makeText(requireContext(), "Camera permission denied", Toast.LENGTH_SHORT).show()
         }
-
     private fun showLoading(isLoading: Boolean) {
         if (_binding == null) return // Safety check if fragment is destroyed
 
@@ -201,8 +194,6 @@ class ScanFragmentActivity : Fragment() {
     @SuppressLint("MissingPermission")
     private fun getLocation(onResult: (Location?) -> Unit) {
         val fused = LocationServices.getFusedLocationProviderClient(requireContext())
-
-        // Start a timeout timer (30 seconds)
         val timeoutMillis = 30000L
         var callbackCalled = false
 
@@ -214,12 +205,9 @@ class ScanFragmentActivity : Fragment() {
                 onResult(null)
             }
         }, timeoutMillis)
-
-        // Try last known location first
         fused.lastLocation.addOnSuccessListener { lastLocation ->
             val thirtySecondsAgo = System.currentTimeMillis() - 30000
             if (lastLocation != null && lastLocation.time > thirtySecondsAgo && lastLocation.accuracy < 50f) {
-                Log.d("USER_LOCATION_LOG", "✅ Using fast last known location.")
                 if (!callbackCalled) {
                     callbackCalled = true
                     timeoutHandler.removeCallbacksAndMessages(null)
@@ -228,7 +216,6 @@ class ScanFragmentActivity : Fragment() {
                 return@addOnSuccessListener
             }
 
-            // Otherwise, request a fresh one
             val request = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 500L)
                 .setMaxUpdates(1)
                 .setMinUpdateIntervalMillis(500L)
@@ -242,7 +229,6 @@ class ScanFragmentActivity : Fragment() {
 
                     val bestLocation = result.locations.minByOrNull { it.accuracy }
 
-                    // Check accuracy
                     if (bestLocation != null && bestLocation.accuracy > 50f) {
                         Log.w("LOCATION_ACCURACY", "⚠️ Location too inaccurate: ${bestLocation.accuracy}m")
                     }
@@ -265,8 +251,6 @@ class ScanFragmentActivity : Fragment() {
         if (!scanningEnabled) return
         scanningEnabled = false
         showLoading(true)
-
-        // Helper function to reset state on failure or end of flow
         fun resetState(message: String? = null) {
             if (message != null) {
                 requireActivity().runOnUiThread {
@@ -282,18 +266,14 @@ class ScanFragmentActivity : Fragment() {
             }
 
             scanningEnabled = true
-            binding.previewView.visibility = View.VISIBLE // Re-enable the scanner view
+            binding.previewView.visibility = View.VISIBLE
             showLoading(false)
         }
 
-
-        // --- OPTIMIZATION POINT 1: Efficiently locate the session and break the loop ---
         database.get().addOnSuccessListener { snapshot ->
             var matchFound = false
-            var sessionDetails: Pair<String, String>? = null // Pair of <roomId, sessionId>
+            var sessionDetails: Pair<String, String>? = null
 
-            // Client-side scan is still the main bottleneck due to the nested DB structure.
-            // We ensure we break as soon as possible.
             for (roomSnapshot in snapshot.children) {
                 val sessions = roomSnapshot.child("sessions")
                 for (session in sessions.children) {
@@ -314,7 +294,6 @@ class ScanFragmentActivity : Fragment() {
                 return@addOnSuccessListener
             }
 
-            // Deconstruct found details and retrieve necessary snapshots
             val (roomId, sessionId) = sessionDetails
             val roomSnapshot = snapshot.child(roomId)
             val session = roomSnapshot.child("sessions").child(sessionId)
@@ -323,7 +302,6 @@ class ScanFragmentActivity : Fragment() {
             val startTime = session.child("startTime").getValue(String::class.java) ?: ""
             val allowanceTime = session.child("allowanceTime").getValue(Int::class.java) ?: 0
 
-            // --- OPTIMIZATION POINT 2: Quick exit if session has ended ---
             if (sessionStatus != "started") {
                 resetState("Session has ended. Scanning disabled.")
                 return@addOnSuccessListener
@@ -335,14 +313,12 @@ class ScanFragmentActivity : Fragment() {
                 .child("attendance")
                 .child(FirebaseAuth.getInstance().currentUser?.uid ?: "NO_USER")
 
-            // --- OPTIMIZATION POINT 3: Check existing attendance (faster network call than polygon + GPS) ---
             attendanceRef.get().addOnSuccessListener { attendanceSnapshot ->
                 if (attendanceSnapshot.exists()) {
                     resetState("You already scanned for this class.")
                     return@addOnSuccessListener
                 }
 
-                // Location-based checks start here (inherently slow part)
                 val polygonPoints = mutableListOf<LatLng>()
                 val polygonSnapshot = roomSnapshot.child("polygon")
                 for (point in polygonSnapshot.children) {
@@ -352,7 +328,7 @@ class ScanFragmentActivity : Fragment() {
                 }
                 Log.d("POLYGON_LOG", buildString {
                     appendLine("════════════════════════════════════════")
-                    appendLine("🏫 Room Polygon Points (${polygonPoints.size}):")
+                    appendLine("Room Polygon Points (${polygonPoints.size}):")
                     polygonPoints.forEachIndexed { index, point ->
                         appendLine("  • Point ${index + 1}: Lat=${point.latitude}, Lng=${point.longitude}")
                     }
@@ -431,7 +407,6 @@ class ScanFragmentActivity : Fragment() {
                         else -> "Low / Needs review"
                     }
 
-                    // Final markAttendance call
                     markAttendance(
                         roomId,
                         sessionId,
@@ -472,21 +447,18 @@ class ScanFragmentActivity : Fragment() {
 
             val diffMinutes = ((current!!.time - start!!.time) / (1000 * 60)).toInt()
 
-            // Determine present or late
             val (status, lateDuration) = when {
                 diffMinutes < 0 -> "present" to 0
                 diffMinutes <= allowanceTime -> "present" to 0
                 else -> "late" to diffMinutes - allowanceTime
             }
 
-            // Apply the final logic based on validation result
             val finalStatus = when (validationResult) {
-                "present" -> status // can be "present" or "late"
+                "present" -> status
                 "partial" -> "partial"
                 else -> "absent"
             }
 
-            // Get user info
             val auth = FirebaseAuth.getInstance()
             val currentUser = auth.currentUser ?: run {
                 Toast.makeText(requireContext(), "Not logged in", Toast.LENGTH_SHORT).show()
@@ -624,14 +596,14 @@ class ScanFragmentActivity : Fragment() {
 
 
                         val newConfidence = when {
-                            distance > 10f -> "Partial - Left geofence area"
+                            distance > 20f -> "Partial - Left geofence area"
                             else -> "High"
                         }
 
                         attendanceRef.child("confidence").setValue(newConfidence)
 
 
-                        if (distance > 10f) {
+                        if (distance > 20f) {
                             if (outsideStartTime == null) {
                                 outsideStartTime = System.currentTimeMillis()
                                 requireActivity().runOnUiThread {
@@ -731,8 +703,6 @@ class ScanFragmentActivity : Fragment() {
     private fun stopCameraAndScanner() {
         try {
             scanningEnabled = false
-
-            // clear analyzer so it stops receiving frames
             try {
                 imageAnalysis?.clearAnalyzer()
             } catch (e: Exception) {
@@ -747,8 +717,6 @@ class ScanFragmentActivity : Fragment() {
 
             camera = null
             imageAnalysis = null
-
-            // shutdown executor
             try {
                 cameraExecutor?.shutdownNow()
             } catch (e: Exception) {
@@ -797,9 +765,7 @@ class ScanFragmentActivity : Fragment() {
 
     override fun onDestroyView() {
         super.onDestroyView()
-        // ensure camera cleaned
         stopCameraAndScanner()
-
         _binding = null
         Log.d("CAMERA_STATE", "Camera and binding fully destroyed.")
     }

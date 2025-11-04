@@ -57,7 +57,6 @@ class AuthRepository(
                         return Result.failure(Exception("Access denied: account is for $storedRole only"))
                     }
                 } else {
-                    // First-time Google login → store new role
                     val userData = mapOf("email" to user.email, "role" to role)
                     database.child("users").child(uid).setValue(userData).await()
                 }
@@ -91,7 +90,6 @@ class AuthRepository(
                 firebaseAuth.signOut()
                 return Result.failure(Exception("Account role not found"))
             }
-
             if (storedRole != role) {
                 firebaseAuth.signOut()
                 return Result.failure(Exception("Access denied: this account is for $storedRole only"))
@@ -108,8 +106,6 @@ class AuthRepository(
             if (email.isBlank() || password.isBlank()) {
                 return Result.failure(IllegalArgumentException("Email and password cannot be empty"))
             }
-
-            // Step 1: Check if this email exists under a different role
             val usersSnapshot = database.child("users").get().await()
             for (userSnap in usersSnapshot.children) {
                 val existingEmail = userSnap.child("email").getValue(String::class.java)
@@ -119,20 +115,13 @@ class AuthRepository(
                     return Result.failure(Exception("This email is already registered as a $existingRole"))
                 }
             }
-
-            // Step 2: Create user in Firebase Authentication
             val result = firebaseAuth.createUserWithEmailAndPassword(email, password).await()
             val user = result.user ?: return Result.failure(Exception("User creation failed"))
-
-            // Step 3: Save role in Realtime Database
             val userData = mapOf(
                 "email" to email,
                 "role" to role
             )
-
             database.child("users").child(user.uid).setValue(userData).await()
-
-            // Optional: send email verification
             user.sendEmailVerification().await()
 
             Result.success(Unit)
@@ -149,7 +138,6 @@ class AuthRepository(
         return try {
             val userId = firebaseAuth.currentUser?.uid ?: return Result.failure(Exception("User not logged in"))
             val dbRef = database.child("users").child(userId)
-
             dbRef.child("fullname").setValue(newName).await()
 
             Result.success(Unit)

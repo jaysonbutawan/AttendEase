@@ -27,12 +27,10 @@ class AttendanceStatusBottomSheet : BottomSheetDialogFragment() {
     private var sessionId: String? = null
     private var subject: String? =null
 
-    // --- Lifecycle Methods ---
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Retain the logic for retrieving arguments
         roomId = arguments?.getString("roomId")
         sessionId = arguments?.getString("sessionId")
         subject = arguments?.getString("subject")
@@ -67,8 +65,6 @@ class AttendanceStatusBottomSheet : BottomSheetDialogFragment() {
         binding.textHeader.text ="$subject"}
 
 
-    // --- Private Methods (Main Functionalities Unchanged) ---
-
     private fun setupRecyclerView() {
         adapter = AttendanceStatusAdapter(emptyList())
         binding.recyclerViewSubjects.layoutManager = LinearLayoutManager(requireContext())
@@ -76,7 +72,6 @@ class AttendanceStatusBottomSheet : BottomSheetDialogFragment() {
     }
 
     private fun observeViewModel() {
-        // Data observation remains on the main thread (Main Dispatcher)
         viewModel.attendanceList.observe(viewLifecycleOwner) { list ->
             adapter.updateData(list)
         }

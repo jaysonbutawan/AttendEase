@@ -11,6 +11,7 @@ import com.bumptech.glide.Glide
 import com.example.attendease.R
 import com.example.attendease.databinding.StudentDashboardScreenBinding
 import com.example.attendease.student.helper.SessionHelper
+import com.example.attendease.student.helper.StudentValidator
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.*
 import kotlinx.coroutines.*
@@ -37,7 +38,6 @@ class StudentDashboardActivity : AppCompatActivity() {
         enableEdgeToEdge()
         setContentView(binding.root)
 
-        // ✅ Initialize Firebase reference for logged-in user
         val currentUser = FirebaseAuth.getInstance().currentUser
         if (currentUser == null) {
             Toast.makeText(this, "User not logged in", Toast.LENGTH_SHORT).show()
@@ -49,10 +49,8 @@ class StudentDashboardActivity : AppCompatActivity() {
             .getReference("users")
             .child(currentUser.uid)
 
-        // ✅ Listen to user data and update UI
         setupUserListener()
 
-        // ✅ Swipe-to-refresh setup
         binding.swipeRefresh.setOnRefreshListener {
             val currentFragment = supportFragmentManager.findFragmentById(R.id.fragmentContainer)
             val canScrollUp = currentFragment?.view?.canScrollVertically(-1) ?: false
@@ -64,7 +62,6 @@ class StudentDashboardActivity : AppCompatActivity() {
             }
         }
 
-        // ✅ Load default fragment
         loadFragment("schedule")
 
         updateLiveSessionStatus()
@@ -72,7 +69,26 @@ class StudentDashboardActivity : AppCompatActivity() {
         binding.joinNowBtn.setOnClickListener {
             when (binding.joinNowBtn.text.toString()) {
                 "Join Now" -> {
-                    loadFragment("scan")
+                    if (ensureValidStudentName()) {
+                        loadFragment("scan")
+                    }else{  androidx.appcompat.app.AlertDialog.Builder(this)
+                        .setTitle("Incomplete Profile")
+                        .setMessage("Please complete your profile with your full name before continuing.")
+                        .setCancelable(false)
+                        .setPositiveButton("OK") { dialog, _ ->
+                            dialog.dismiss()
+
+                            val name = binding.userName.text?.toString()
+                            val editProfileSheet = EditProfileBottomSheetActivity.newInstance(name)
+                            editProfileSheet.show(supportFragmentManager, "EditProfileBottomSheetActivity")
+                        }
+                        .setNegativeButton("Cancel") { dialog, _ ->
+                            dialog.dismiss()
+                        }
+                        .show()
+                        return@setOnClickListener
+
+                    }
                 }
                 "Joined" -> {
                     scope.launch {
@@ -81,7 +97,6 @@ class StudentDashboardActivity : AppCompatActivity() {
                             val roomsRef = database.child("rooms")
                             val today = java.text.SimpleDateFormat("yyyy-MM-dd").format(java.util.Date())
 
-                            // 🔹 Get the current live class from SessionHelper
                             val sessions = SessionHelper.getMatchedSessions()
                             val liveClass = sessions.firstOrNull { it.status == "Live" }
 
@@ -90,7 +105,6 @@ class StudentDashboardActivity : AppCompatActivity() {
                                 return@launch
                             }
 
-                            // 🔹 Find room ID (by comparing name/roomName)
                             val roomSnapshot = roomsRef.get().await()
                             var foundRoomId: String? = null
                             for (room in roomSnapshot.children) {
@@ -112,7 +126,6 @@ class StudentDashboardActivity : AppCompatActivity() {
                             val sessionId = liveClass.sessionId
                             val currentUser = FirebaseAuth.getInstance().currentUser ?: return@launch
 
-                            // 🔹 Get latest attendance info
                             val attendanceRef = database
                                 .child("rooms")
                                 .child(foundRoomId)
@@ -126,7 +139,6 @@ class StudentDashboardActivity : AppCompatActivity() {
                             val timeScanned = attendanceSnap.child("timeScanned").getValue(String::class.java) ?: "N/A"
 
 
-                            // 🔹 Prepare arguments for JoinClassFragmentActivity
                             val dataToPass = Bundle().apply {
                                 putString("roomId", foundRoomId)
                                 putString("sessionId", sessionId)
@@ -135,7 +147,6 @@ class StudentDashboardActivity : AppCompatActivity() {
                                 putString("dateScanned", today)
                             }
 
-                            // ✅ Navigate to JoinClassFragmentActivity with parameters
                             loadFragment("joinClass", dataToPass)
 
                         } catch (e: Exception) {
@@ -149,7 +160,6 @@ class StudentDashboardActivity : AppCompatActivity() {
 
 
 
-        // ✅ Bottom navigation
         binding.bottomNavigationView.setOnItemSelectedListener { item ->
             when (item.itemId) {
                 R.id.nav_profile -> loadFragment("profile")
@@ -175,7 +185,7 @@ class StudentDashboardActivity : AppCompatActivity() {
                 val course = snapshot.child("course").getValue(String::class.java)
                 var imageUrl = snapshot.child("profileImage").getValue(String::class.java)
 
-                var updated = false // Track if any updates were made
+                var updated = false
 
                 if (fullName.isNullOrEmpty() && !currentUser.displayName.isNullOrEmpty()) {
                     val googleName = currentUser.displayName!!
@@ -183,22 +193,17 @@ class StudentDashboardActivity : AppCompatActivity() {
                     updated = true
                 }
 
-                // ✅ If profile image is missing, set it from Google photo URL
                 if (imageUrl.isNullOrEmpty() && currentUser.photoUrl != null) {
                     val googlePhoto = currentUser.photoUrl.toString()
                     databaseRef.child("profileImage").setValue(googlePhoto)
                     imageUrl = googlePhoto
                     updated = true
                 }
-
-                // ✅ Update UI immediately (even if no changes)
                 setupUserInfo(
                     name = fullName ?: currentUser.displayName,
                     course = course,
                     imageUrl = imageUrl ?: currentUser.photoUrl?.toString()
                 )
-
-                // ✅ Optional: show a one-time toast if we updated something
                 if (updated) {
                     Toast.makeText(
                         this@StudentDashboardActivity,
@@ -220,10 +225,6 @@ class StudentDashboardActivity : AppCompatActivity() {
         databaseRef.addValueEventListener(userListener!!)
     }
 
-
-    /**
-     * 🔹 Display name, course, and image in dashboard header
-     */
     private fun setupUserInfo(name: String?, course: String?, imageUrl: String?) = with(binding) {
         userName.text = name ?: "Unknown Student"
         userCourse.text = course ?: "No course assigned"
@@ -241,22 +242,35 @@ class StudentDashboardActivity : AppCompatActivity() {
         }
     }
 
-    /**
-     * 🔹 Manage fragments
-     */
     fun loadFragment(fragmentTag: String, args: Bundle? = null) {
-        val transaction = supportFragmentManager.beginTransaction()
+        if (fragmentTag.equals("scan", true)
+            && !StudentValidator.isValidStudentName(binding.userName.text?.toString())
+        ) {
+            androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle("Incomplete Profile")
+                .setMessage("Please complete your profile with your full name before continuing.")
+                .setCancelable(false)
+                .setPositiveButton("OK") { dialog, _ ->
+                    dialog.dismiss()
 
-        // Hide all fragments
+                    val name = binding.userName.text?.toString()
+                    val editProfileSheet = EditProfileBottomSheetActivity.newInstance(name)
+                    editProfileSheet.show(supportFragmentManager, "EditProfileBottomSheetActivity")
+                }
+                .setNegativeButton("Cancel") { dialog, _ ->
+                    dialog.dismiss()
+                }
+                .show()
+            return
+        }
+        val transaction = supportFragmentManager.beginTransaction()
         listOf(scheduleFragment, scanFragment, profileFragment, historyFragment, joinClassFragment)
             .forEach { it?.let { transaction.hide(it) } }
-
         var joinClassFragment = supportFragmentManager.findFragmentByTag("joinClass")
         if (joinClassFragment != null && joinClassFragment.isVisible) {
             transaction.remove(joinClassFragment)
         }
 
-        // Show existing fragment or add new
         when (fragmentTag) {
             "schedule" -> {
                 if (scheduleFragment == null) {
@@ -317,7 +331,6 @@ class StudentDashboardActivity : AppCompatActivity() {
 
         scope.launch {
             try {
-                // 🔹 Step 1: Run heavy work (Firebase reads) in background
                 val liveClassData = withContext(Dispatchers.IO) {
                     val sessions = SessionHelper.getMatchedSessions()
                     val liveClass = sessions.firstOrNull { it.status == "Live" } ?: return@withContext null
@@ -338,11 +351,9 @@ class StudentDashboardActivity : AppCompatActivity() {
                     val attendanceRef = sessionRef.child("attendance").child(today).child(currentUser.uid)
                     val attendanceSnap = attendanceRef.get().await()
 
-                    // Return everything in one data object
                     Triple(liveClass, foundRoomId, Pair(sessionStatus, attendanceSnap.exists()))
                 }
 
-                // 🔹 Step 2: Update UI on main thread
                 withContext(Dispatchers.Main) {
                     if (liveClassData == null) {
                         binding.onClassCard.visibility = View.GONE
@@ -361,7 +372,6 @@ class StudentDashboardActivity : AppCompatActivity() {
                         if (attendanceExists) {
                             showJoinedState()
                         } else {
-                            // fallback check (optional optimization retained)
                             checkAttendanceFallback(foundRoomId, liveClass.sessionId, currentUser.uid, today)
                         }
                         binding.joinNowBtn.isEnabled = true
@@ -383,10 +393,6 @@ class StudentDashboardActivity : AppCompatActivity() {
             }
         }
     }
-
-    /**
-     * ✅ Optional fallback if attendance check didn't detect user entry
-     */
     private fun checkAttendanceFallback(foundRoomId: String, sessionId: String, uid: String, today: String) {
         val attendanceRef = FirebaseDatabase.getInstance()
             .getReference("rooms/$foundRoomId/sessions/$sessionId/attendance/$today/$uid")
@@ -414,6 +420,20 @@ class StudentDashboardActivity : AppCompatActivity() {
         binding.joinNowBtn.text = "Joined"
         binding.joinNowBtn.isEnabled = true
         binding.joinNowBtn.alpha = 0.6f
+    }
+
+    private fun ensureValidStudentName(): Boolean {
+        val currentName = binding.userName.text?.toString()
+        return if (!StudentValidator.isValidStudentName(currentName)) {
+            Toast.makeText(
+                this,
+                "Please complete your profile with your full name before continuing.",
+                Toast.LENGTH_LONG
+            ).show()
+            false
+        } else {
+            true
+        }
     }
 
 
