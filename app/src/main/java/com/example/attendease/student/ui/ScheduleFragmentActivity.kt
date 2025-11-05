@@ -89,10 +89,7 @@ class ScheduleFragmentActivity : Fragment() {
     }
 
     private fun refreshFragmentData() {
-        // Start the spinner immediately
         binding.swipeRefreshLayout.isRefreshing = true
-
-        // Call the main function to reload all data in the fragment
         loadMatchedSessions()
     }
 

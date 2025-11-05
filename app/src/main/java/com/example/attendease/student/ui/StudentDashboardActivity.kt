@@ -113,7 +113,6 @@ class StudentDashboardActivity : AppCompatActivity() {
                                 if (name1 == liveClass.room || name2 == liveClass.room) {
                                     foundRoomId = room.key
                                     foundRoomName =name1 ?:name2
-
                                     break
                                 }
                             }
@@ -171,9 +170,7 @@ class StudentDashboardActivity : AppCompatActivity() {
         }
     }
 
-    /**
-     * 🔹 Listen for changes in user data and update UI
-     */
+    //for UI updates
     private fun setupUserListener() {
         userListener = object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {

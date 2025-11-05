@@ -102,7 +102,6 @@ class ScanFragmentActivity : Fragment() {
 
     }
     private fun startCamera() {
-        // Prevent reinitialization if camera already active
         if (cameraProvider != null && camera != null) {
             Log.d("CAMERA_STATE", "Camera already running, skipping reinit.")
             return
@@ -124,17 +123,12 @@ class ScanFragmentActivity : Fragment() {
                 val preview = Preview.Builder().build().apply {
                     surfaceProvider = binding.previewView.surfaceProvider
                 }
-
-                // CHANGED: keep reference to ImageAnalysis
                 imageAnalysis = ImageAnalysis.Builder()
                     .setOutputImageRotationEnabled(true)
                     .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                     .build()
-
-                // CHANGED: use background executor for analyzer (not main executor)
                 val executor = cameraExecutor ?: ContextCompat.getMainExecutor(requireContext())
                 imageAnalysis?.setAnalyzer(executor) { imageProxy ->
-                    // Guard: close early if scanning disabled or binding gone
                     if (!scanningEnabled || _binding == null) {
                         try { imageProxy.close() } catch (_: Exception) {}
                         return@setAnalyzer
@@ -159,7 +153,6 @@ class ScanFragmentActivity : Fragment() {
 
     @SuppressLint("UnsafeOptInUsageError")
     private fun processImageProxy(imageProxy: ImageProxy) {
-        // Additional guard just in case
         if (!scanningEnabled || _binding == null) {
             try { imageProxy.close() } catch (_: Exception) {}
             return
@@ -177,8 +170,6 @@ class ScanFragmentActivity : Fragment() {
                 for (barcode in barcodes) {
                     barcode.rawValue?.let { qrValue ->
                         Log.d("QR_SCAN", "Scanned: $qrValue")
-                        // Do NOT toast on every frame in production — heavy for UX; kept for debug.
-                        Toast.makeText(requireContext(), "Scanned: $qrValue", Toast.LENGTH_SHORT).show()
                         handleQrScanned(qrValue)
                     }
                 }
@@ -242,10 +233,6 @@ class ScanFragmentActivity : Fragment() {
             fused.requestLocationUpdates(request, callback, Looper.getMainLooper())
         }
     }
-
-
-
-    // --- Optimized handleQrScanned: Faster flow and exit conditions ---
     @SuppressLint("MissingPermission")
     private fun handleQrScanned(qrValue: String) {
         if (!scanningEnabled) return
@@ -337,7 +324,6 @@ class ScanFragmentActivity : Fragment() {
 
 
                 getLocation { location ->
-                    // --- Handle missing or inaccurate location ---
                     if (location == null || location.accuracy > 50f) {
                         requireActivity().runOnUiThread {
                             AlertDialog.Builder(requireContext())
@@ -367,7 +353,7 @@ class ScanFragmentActivity : Fragment() {
                         return@getLocation
                     }
                     val studentLatLng = LatLng(location.latitude, location.longitude)
-                    val gpsAccuracy = location.accuracy // meters
+                    val gpsAccuracy = location.accuracy
 
                     val distance = LocationValidator.getDistanceFromPolygon(studentLatLng, polygonPoints)
                     val isInsideBuffer = LocationValidator.isInsidePolygon(studentLatLng, polygonPoints, toleranceMeters = 50f)
@@ -467,13 +453,9 @@ class ScanFragmentActivity : Fragment() {
             }
 
             val studentId = currentUser.uid
-
-            // 🔹 Fetch the student full name from Firebase Database
             val userRef = FirebaseDatabase.getInstance().getReference("users").child(studentId)
             userRef.get().addOnSuccessListener { snapshot ->
                 val studentName = snapshot.child("fullname").getValue(String::class.java) ?: "Unknown Student"
-
-                // Firebase reference
                 val attendanceRef = database.child(roomId)
                     .child("sessions")
                     .child(sessionId)
@@ -481,7 +463,6 @@ class ScanFragmentActivity : Fragment() {
                     .child(currentDate)
                     .child(studentId)
 
-                // Data to store
                 val attendanceData = mapOf(
                     "name" to studentName,
                     "status" to finalStatus,
@@ -506,7 +487,6 @@ class ScanFragmentActivity : Fragment() {
                 """.trimIndent()
                 )
 
-                // Save to Firebase
                 attendanceRef.setValue(attendanceData)
                     .addOnSuccessListener {
                         Toast.makeText(
@@ -516,7 +496,6 @@ class ScanFragmentActivity : Fragment() {
                         ).show()
                         showLoading(false)
 
-                        // Prevent re-scan for this session
                         scanningEnabled = false
                         saveScanStatus(roomId, sessionId, true)
 
@@ -562,11 +541,6 @@ class ScanFragmentActivity : Fragment() {
     private fun saveScanStatus(roomId: String, sessionId: String, scanned: Boolean) {
         val prefs = requireContext().getSharedPreferences("ScanPrefs", Context.MODE_PRIVATE)
         prefs.edit().putBoolean("${roomId}_$sessionId", scanned).apply()
-    }
-
-    private fun hasScannedForSession(roomId: String, sessionId: String): Boolean {
-        val prefs = requireContext().getSharedPreferences("ScanPrefs", Context.MODE_PRIVATE)
-        return prefs.getBoolean("${roomId}_$sessionId", false)
     }
 
         @SuppressLint("MissingPermission")
