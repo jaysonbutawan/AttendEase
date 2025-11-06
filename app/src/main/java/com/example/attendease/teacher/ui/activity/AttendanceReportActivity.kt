@@ -2,7 +2,6 @@ package com.example.attendease.teacher.ui.activity
 
 import android.content.Intent
 import android.os.Bundle
-import android.util.Log
 import android.view.View
 import android.widget.Toast
 import androidx.activity.viewModels
@@ -66,10 +65,6 @@ class AttendanceReportActivity : AppCompatActivity() {
                 sessions
             }
 
-            Log.d(
-                "AttendanceReport",
-                "📚 Filtered ${filteredSessions.size} sessions for subject=$selectedSubject"
-            )
 
             if (filteredSessions.isEmpty()) {
                 Toast.makeText(this, "No attendance history for $selectedSubject", Toast.LENGTH_SHORT).show()
@@ -83,27 +78,11 @@ class AttendanceReportActivity : AppCompatActivity() {
         }
 
         viewModel.isLoading.observe(this) { isLoading ->
-            Log.d("AttendanceReport", "⏳ Loading state: $isLoading")
         }
 
-        viewModel.errorMessage.observe(this) { message ->
-            message?.let {
-                Log.e("AttendanceReport", "❌ Error fetching class history: $it")
-                Toast.makeText(this, "Error: $it", Toast.LENGTH_SHORT).show()
-            }
-        }
     }
 
     private fun onSessionClicked(session: ClassSession) {
-        Log.d("AttendanceReport", "🖱️ Session clicked: ${session.subject} | ${session.date}")
-
-        Toast.makeText(
-            this,
-            "Selected: ${session.subject} on ${session.date}",
-            Toast.LENGTH_SHORT
-        ).show()
-
-        // 🔹 Navigate to AttendanceListActivity
         val intent = Intent(this, AttendanceListActivity::class.java).apply {
             putExtra("subjectName", session.subject)
             putExtra("sessionDate", session.date)

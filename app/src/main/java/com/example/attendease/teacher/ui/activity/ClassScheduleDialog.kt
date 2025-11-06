@@ -213,7 +213,7 @@ class ClassScheduleDialog : DialogFragment() {
             val format = SimpleDateFormat("hh:mm a", Locale.getDefault())
             val date = format.parse(time)
             val cal = Calendar.getInstance()
-            cal.time = date!!  // Correct way to set the time
+            cal.time = date!!
             cal.get(Calendar.HOUR_OF_DAY) * 60 + cal.get(Calendar.MINUTE)
         } catch (e: Exception) {
             0
@@ -311,9 +311,11 @@ class ClassScheduleDialog : DialogFragment() {
 
 
     private fun confirmRoomChange(oldRoomId: String, newRoomId: String, sessionId: String, subject: String, start: String, end: String) {
+        val oldRoomName = viewModel.rooms.value?.find { it.roomId == oldRoomId }?.name ?: oldRoomId
+        val newRoomName = viewModel.rooms.value?.find { it.roomId == newRoomId }?.name ?: newRoomId
         AlertDialog.Builder(requireContext())
             .setTitle("Move session to a new room?")
-            .setMessage("You are moving this session from $oldRoomId to $newRoomId. Continue?")
+            .setMessage("You are moving this session from $oldRoomName to $newRoomName. Continue?")
             .setPositiveButton("Yes") { _, _ ->
                 moveSession(oldRoomId, newRoomId, sessionId, subject, start, end)
             }

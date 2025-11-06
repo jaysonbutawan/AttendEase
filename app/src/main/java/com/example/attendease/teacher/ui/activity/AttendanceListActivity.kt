@@ -93,10 +93,12 @@ class AttendanceListActivity : AppCompatActivity() {
                 val room = roomId ?: return@setPositiveButton
                 val session = sessionId ?: return@setPositiveButton
 
-                val dateFormatter = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-                val currentDate = dateFormatter.format(Date())
+//                val dateFormatter = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+//                val currentDate = dateFormatter.format(Date())
+                val sessionDate = intent.getStringExtra("sessionDate")
 
-                viewModel.updateAttendanceStatus(room, session, currentDate, record)
+
+                viewModel.updateAttendanceStatus(room, session, sessionDate, record)
 
                 dialog.dismiss()
             }

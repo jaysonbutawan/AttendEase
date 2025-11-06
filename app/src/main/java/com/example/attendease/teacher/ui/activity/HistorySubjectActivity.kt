@@ -3,7 +3,6 @@ package com.example.attendease.teacher.ui.activity
 import android.content.Intent
 import android.os.Bundle
 import android.view.View
-import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
@@ -52,7 +51,6 @@ class HistorySubjectActivity : AppCompatActivity() {
         viewModel.sessions.observe(this) { sessions ->
             if (sessions.isNullOrEmpty()) {
                 binding.textEmptyState.visibility =  View.VISIBLE
-                Toast.makeText(this, "No subjects found.", Toast.LENGTH_SHORT).show()
             } else {
                 adapter = HistorySubjectAdapter(sessions) { selectedSubject ->
                     onSubjectClicked(selectedSubject.subject ?: "Unknown Subject")
@@ -66,14 +64,11 @@ class HistorySubjectActivity : AppCompatActivity() {
 
         viewModel.error.observe(this) { errorMessage ->
             if (!errorMessage.isNullOrEmpty()) {
-                Toast.makeText(this, "Error: $errorMessage", Toast.LENGTH_SHORT).show()
             }
         }
     }
 
     private fun onSubjectClicked(subjectName: String) {
-        Toast.makeText(this, "Selected: $subjectName", Toast.LENGTH_SHORT).show()
-
         val intent = Intent(this, AttendanceReportActivity::class.java).apply {
             putExtra("selectedSubject", subjectName)
         }
